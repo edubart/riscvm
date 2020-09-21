@@ -78,11 +78,13 @@ static nlstringview_arr32 machine_REGNAMES = {{{__strlit1, 4}, {__strlit2, 2}, {
 typedef struct machine_Machine machine_Machine;
 typedef machine_Machine* machine_Machine_ptr;
 struct machine_Machine {
+  bool running;
   int64_t pc;
   uint64_t regs[32];
   uint8_t memory[134217728];
+  int64_t exitcode;
 };
-nelua_static_assert(sizeof(machine_Machine) == 134217992, "Nelua and C disagree on type size");
+nelua_static_assert(sizeof(machine_Machine) == 134218008, "Nelua and C disagree on type size");
 static char __strlit33[3] = "rb";
 #include <stdlib.h>
 #define nelua_noreturn __attribute__((noreturn))
@@ -178,40 +180,34 @@ static inline uint32_t machine_rimm__8(uint32_t inst, nlniltype instoff, nlnilty
 static inline uint32_t machine_rimm__9(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg);
 static inline uint32_t machine_rimm__10(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg);
 static inline uint32_t machine_rimm__11(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg);
-static uint32_t nelua_shl_uint32(uint32_t a, int32_t b);
-static uint32_t nelua_shr_uint32(uint32_t a, int32_t b);
-static inline uint32_t machine_rimm__12(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg);
+static char __strlit68[9] = "aborted!";
 #include <inttypes.h>
-static void __nelua_print1(nlstringview a1, uint64_t a2);
-static void nelua_stdout_write_stringview(nlstringview s);
-static char __strlit68[5] = "exit";
-static char __strlit69[9] = "aborted!";
-static void __nelua_print2(char* a1);
-static void __nelua_print3(int64_t a1);
-static char __strlit70[20] = "illegal system call";
+static void __nelua_print1(char* a1);
+static void __nelua_print2(int64_t a1);
+static char __strlit69[20] = "illegal system call";
 static uint64_t machine_Machine_handle_syscall(machine_Machine_ptr self, uint64_t code);
 #define NLNIL (nlniltype){}
-static char __strlit71[25] = "illegal load instruction";
-static char __strlit72[26] = "illegal store instruction";
+static char __strlit70[25] = "illegal load instruction";
+static char __strlit71[26] = "illegal store instruction";
 static int64_t nelua_shl_int64(int64_t a, int64_t b);
 static int64_t nelua_shr_int64(int64_t a, int64_t b);
 static int64_t nelua_asr_int64(int64_t a, int64_t b);
-static char __strlit73[33] = "illegal op-imm shift instruction";
-static char __strlit74[27] = "illegal op-imm instruction";
-static char __strlit75[23] = "illegal op instruction";
+static char __strlit72[33] = "illegal op-imm shift instruction";
+static char __strlit73[27] = "illegal op-imm instruction";
+static char __strlit74[23] = "illegal op instruction";
+static char __strlit75[36] = "illegal op-imm-32 shift instruction";
 static char __strlit76[30] = "illegal op-imm-32 instruction";
 static char __strlit77[26] = "illegal op-32 instruction";
 static char __strlit78[27] = "illegal branch instruction";
 static char __strlit79[27] = "illegal system instruction";
-static void __nelua_print4(nlstringview a1, uint32_t a2, nlstringview a3, int64_t a4);
-static char __strlit80[8] = "opcode:";
-static char __strlit81[4] = "pc:";
-static char __strlit82[15] = "illegal opcode";
-static bool machine_Machine_execute(machine_Machine_ptr self, uint32_t inst);
-static void machine_Machine_run(machine_Machine_ptr self);
+static char __strlit80[15] = "illegal opcode";
+static inline void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst);
+#define nelua_noinline __attribute__((noinline))
+static nelua_noinline void machine_Machine_run(machine_Machine_ptr self);
 typedef char** nlcstring_ptr;
-static void __nelua_print5(nlstringview a1);
-static char __strlit83[38] = "please supply a RV64I program to run!";
+static void __nelua_print3(nlstringview a1);
+static void nelua_stdout_write_stringview(nlstringview s);
+static char __strlit81[38] = "please supply a RV64I program to run!";
 static char* riscvm_filename = NULL;
 static machine_Machine riscvm_machine = {0};
 static nlstringview nelua_cstring2stringview(char *s);
@@ -370,72 +366,49 @@ uint32_t machine_rimm__2(uint32_t inst, nlniltype instoff, nlniltype immend, nln
   return ((inst >> 20) & 4064U);
 }
 uint32_t machine_rimm__3(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
-  return ((inst >> 7) & 31U);
+  return ((inst << 0) & 4294963200U);
 }
 uint32_t machine_rimm__4(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
-  return ((inst >> 0) & 4294963200U);
-}
-uint32_t machine_rimm__5(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
   return ((inst >> 11U) & 1048576U);
 }
-uint32_t machine_rimm__6(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
+uint32_t machine_rimm__5(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
   return ((inst >> 20) & 2046U);
 }
-uint32_t machine_rimm__7(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
+uint32_t machine_rimm__6(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
   return ((inst >> 9U) & 2048U);
 }
-uint32_t machine_rimm__8(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
-  return ((inst >> 0) & 1044480U);
+uint32_t machine_rimm__7(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
+  return ((inst << 0) & 1044480U);
 }
-uint32_t machine_rimm__9(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
+uint32_t machine_rimm__8(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
   return ((inst >> 19U) & 4096U);
 }
-uint32_t machine_rimm__10(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
+uint32_t machine_rimm__9(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
   return ((inst >> 20) & 2016U);
 }
-uint32_t machine_rimm__11(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
+uint32_t machine_rimm__10(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
   return ((inst >> 7) & 30U);
 }
-inline uint32_t nelua_shl_uint32(uint32_t a, int32_t b) {
-  if(nelua_unlikely(b >= 32)) return 0;
-  else if(nelua_unlikely(b < 0)) return nelua_shr_uint32(a, -b);
-  else return (uint32_t)a << b;
+uint32_t machine_rimm__11(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
+  return ((inst << 4U) & 2048U);
 }
-inline uint32_t nelua_shr_uint32(uint32_t a, int32_t b) {
-  if(nelua_unlikely(b >= 32)) return 0;
-  else if(nelua_unlikely(b < 0)) return nelua_shl_uint32(a, -b);
-  else return (uint32_t)a >> b;
-}
-uint32_t machine_rimm__12(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
-  return ((nelua_shr_uint32(inst, -4)) & 2048U);
-}
-inline void nelua_stdout_write_stringview(nlstringview s) {
-  if(s.data && s.size > 0) {
-    fwrite((char*)s.data, s.size, 1, stdout);
-  }
-}
-inline void __nelua_print1(nlstringview a1, uint64_t a2) {
-  nelua_stdout_write_stringview(a1);
-  putchar('\t');
-  printf("%" PRIu64, a2);
-  printf("\n");
-}
-inline void __nelua_print2(char* a1) {
+inline void __nelua_print1(char* a1) {
   printf("%s", a1);
   printf("\n");
 }
-inline void __nelua_print3(int64_t a1) {
+inline void __nelua_print2(int64_t a1) {
   printf("%" PRIi64, a1);
   printf("\n");
 }
 uint64_t machine_Machine_handle_syscall(machine_Machine_ptr self, uint64_t code) {
   switch(code) {
     case 10000: {
-      __nelua_print1(((nlstringview){__strlit68, 4}), (*(nluint64_arr32*)self->regs).data[10]);
+      self->running = false;
+      self->exitcode = (int64_t)(*(nluint64_arr32*)self->regs).data[10];
       break;
     }
     case 10001: {
-      nelua_panic_stringview(((nlstringview){__strlit69, 8}));
+      nelua_panic_stringview(((nlstringview){__strlit68, 8}));
       break;
     }
     case 10007: {
@@ -448,16 +421,16 @@ uint64_t machine_Machine_handle_syscall(machine_Machine_ptr self, uint64_t code)
     }
     case 10101: {
       char* s = (char*)machine_Machine_getptr(self, (*(nluint64_arr32*)self->regs).data[10]);
-      __nelua_print2(s);
+      __nelua_print1(s);
       break;
     }
     case 10102: {
       int64_t i = (int64_t)(*(nluint64_arr32*)self->regs).data[10];
-      __nelua_print3(i);
+      __nelua_print2(i);
       break;
     }
     default: {
-      nelua_panic_stringview(((nlstringview){__strlit70, 19}));
+      nelua_panic_stringview(((nlstringview){__strlit69, 19}));
       break;
     }
   }
@@ -478,17 +451,7 @@ inline int64_t nelua_asr_int64(int64_t a, int64_t b) {
   else if(nelua_unlikely(b < 0)) return nelua_shl_int64(a, -b);
   else return a >> b;
 }
-inline void __nelua_print4(nlstringview a1, uint32_t a2, nlstringview a3, int64_t a4) {
-  nelua_stdout_write_stringview(a1);
-  putchar('\t');
-  printf("%" PRIu32, a2);
-  putchar('\t');
-  nelua_stdout_write_stringview(a3);
-  putchar('\t');
-  printf("%" PRIi64, a4);
-  printf("\n");
-}
-bool machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
+void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
   uint32_t opcode = machine_rbits__1(inst, NLNIL, NLNIL);
   uint32_t rd = machine_rbits__2(inst, NLNIL, NLNIL);
   uint32_t rs1 = machine_rbits__3(inst, NLNIL, NLNIL);
@@ -529,7 +492,7 @@ bool machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
           break;
         }
         default: {
-          nelua_panic_stringview(((nlstringview){__strlit71, 24}));
+          nelua_panic_stringview(((nlstringview){__strlit70, 24}));
           break;
         }
       }
@@ -540,7 +503,7 @@ bool machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
     }
     case 0x23: {
       uint32_t funct3 = machine_rbits__5(inst, NLNIL, NLNIL);
-      int64_t imm = machine_sext__1((machine_rimm__2(inst, NLNIL, NLNIL, NLNIL) | machine_rimm__3(inst, NLNIL, NLNIL, NLNIL)), NLNIL);
+      int64_t imm = machine_sext__1((machine_rimm__2(inst, NLNIL, NLNIL, NLNIL) | rd), NLNIL);
       uint64_t addr = ((*(nluint64_arr32*)self->regs).data[rs1] + (uint64_t)imm);
       uint64_t val = (*(nluint64_arr32*)self->regs).data[rs2];
       switch(funct3) {
@@ -561,7 +524,7 @@ bool machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
           break;
         }
         default: {
-          nelua_panic_stringview(((nlstringview){__strlit72, 25}));
+          nelua_panic_stringview(((nlstringview){__strlit71, 25}));
           break;
         }
       }
@@ -613,7 +576,7 @@ bool machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
               break;
             }
             default: {
-              nelua_panic_stringview(((nlstringview){__strlit73, 32}));
+              nelua_panic_stringview(((nlstringview){__strlit72, 32}));
               break;
             }
           }
@@ -628,7 +591,7 @@ bool machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
           break;
         }
         default: {
-          nelua_panic_stringview(((nlstringview){__strlit74, 26}));
+          nelua_panic_stringview(((nlstringview){__strlit73, 26}));
           break;
         }
       }
@@ -694,7 +657,7 @@ bool machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
           break;
         }
         default: {
-          nelua_panic_stringview(((nlstringview){__strlit75, 22}));
+          nelua_panic_stringview(((nlstringview){__strlit74, 22}));
           break;
         }
       }
@@ -717,7 +680,7 @@ bool machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
           break;
         }
         case 0x5: {
-          uint32_t shamt = machine_rbits__4(inst, NLNIL, NLNIL);
+          uint32_t shamt = rs2;
           uint32_t funct7 = machine_rbits__8(inst, NLNIL, NLNIL);
           switch(funct7) {
             case 0x0: {
@@ -726,6 +689,10 @@ bool machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
             }
             case 0x20: {
               val = (int64_t)(int32_t)(nelua_asr_int64(val, shamt));
+              break;
+            }
+            default: {
+              nelua_panic_stringview(((nlstringview){__strlit75, 35}));
               break;
             }
           }
@@ -780,39 +747,41 @@ bool machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
       break;
     }
     case 0x37: {
-      int64_t imm = machine_sext__2(machine_rimm__4(inst, NLNIL, NLNIL, NLNIL), NLNIL);
+      int64_t imm = machine_sext__2(machine_rimm__3(inst, NLNIL, NLNIL, NLNIL), NLNIL);
       if(nelua_likely((rd != 0U))) {
         (*(nluint64_arr32*)self->regs).data[rd] = (uint64_t)imm;
       }
       break;
     }
     case 0x17: {
-      int64_t imm = machine_sext__2(machine_rimm__4(inst, NLNIL, NLNIL, NLNIL), NLNIL);
+      int64_t imm = machine_sext__2(machine_rimm__3(inst, NLNIL, NLNIL, NLNIL), NLNIL);
       if(nelua_likely((rd != 0U))) {
-        (*(nluint64_arr32*)self->regs).data[rd] = (uint64_t)((self->pc + imm) - 4);
+        (*(nluint64_arr32*)self->regs).data[rd] = (uint64_t)(self->pc + imm);
       }
       break;
     }
     case 0x6f: {
-      int64_t imm = machine_sext__3((((machine_rimm__5(inst, NLNIL, NLNIL, NLNIL) | machine_rimm__6(inst, NLNIL, NLNIL, NLNIL)) | machine_rimm__7(inst, NLNIL, NLNIL, NLNIL)) | machine_rimm__8(inst, NLNIL, NLNIL, NLNIL)), NLNIL);
+      int64_t imm = machine_sext__3((((machine_rimm__4(inst, NLNIL, NLNIL, NLNIL) | machine_rimm__5(inst, NLNIL, NLNIL, NLNIL)) | machine_rimm__6(inst, NLNIL, NLNIL, NLNIL)) | machine_rimm__7(inst, NLNIL, NLNIL, NLNIL)), NLNIL);
       if(nelua_likely((rd != 0U))) {
-        (*(nluint64_arr32*)self->regs).data[rd] = (uint64_t)self->pc;
+        (*(nluint64_arr32*)self->regs).data[rd] = (uint64_t)(self->pc + 4);
       }
-      self->pc = ((self->pc + imm) - 4);
+      self->pc = (self->pc + imm);
+      return;
       break;
     }
     case 0x67: {
       int64_t imm = machine_sext__1(machine_rimm__1(inst, NLNIL, NLNIL, NLNIL), NLNIL);
-      int64_t val = self->pc;
+      int64_t pc = (self->pc + 4);
       self->pc = (((*(nluint64_arr32*)self->regs).data[rs1] + imm) & -2);
       if(nelua_unlikely((rd != 0U))) {
-        (*(nluint64_arr32*)self->regs).data[rd] = (uint64_t)val;
+        (*(nluint64_arr32*)self->regs).data[rd] = (uint64_t)pc;
       }
+      return;
       break;
     }
     case 0x63: {
       uint32_t funct3 = machine_rbits__5(inst, NLNIL, NLNIL);
-      int64_t imm = machine_sext__4((((machine_rimm__9(inst, NLNIL, NLNIL, NLNIL) | machine_rimm__10(inst, NLNIL, NLNIL, NLNIL)) | machine_rimm__11(inst, NLNIL, NLNIL, NLNIL)) | machine_rimm__12(inst, NLNIL, NLNIL, NLNIL)), NLNIL);
+      int64_t imm = machine_sext__4((((machine_rimm__8(inst, NLNIL, NLNIL, NLNIL) | machine_rimm__9(inst, NLNIL, NLNIL, NLNIL)) | machine_rimm__10(inst, NLNIL, NLNIL, NLNIL)) | machine_rimm__11(inst, NLNIL, NLNIL, NLNIL)), NLNIL);
       uint64_t val1 = (*(nluint64_arr32*)self->regs).data[rs1];
       uint64_t val2 = (*(nluint64_arr32*)self->regs).data[rs2];
       bool cond;
@@ -847,7 +816,8 @@ bool machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
         }
       }
       if(cond) {
-        self->pc = ((self->pc + imm) - 4);
+        self->pc = (self->pc + imm);
+        return;
       }
       break;
     }
@@ -859,14 +829,12 @@ bool machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
       switch(funct11) {
         case 0x0: {
           uint64_t code = (*(nluint64_arr32*)self->regs).data[17];
-          if(code == 10000U) {
-            return false;
-          }
           (*(nluint64_arr32*)self->regs).data[10] = machine_Machine_handle_syscall(self, code);
           break;
         }
         case 0x1: {
-          return false;
+          self->exitcode = -1;
+          self->running = false;
           break;
         }
         default: {
@@ -877,23 +845,25 @@ bool machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
       break;
     }
     default: {
-      __nelua_print4(((nlstringview){__strlit80, 7}), opcode, ((nlstringview){__strlit81, 3}), self->pc);
-      nelua_panic_stringview(((nlstringview){__strlit82, 14}));
+      nelua_panic_stringview(((nlstringview){__strlit80, 14}));
       break;
     }
   }
-  return true;
+  self->pc = (self->pc + 4);
 }
 void machine_Machine_run(machine_Machine_ptr self) {
-  while(true) {
+  self->running = true;
+  while(nelua_likely(self->running)) {
     uint32_t inst = machine_Machine_fetch(self);
-    self->pc = (self->pc + 4);
-    if(!machine_Machine_execute(self, inst)) {
-      break;
-    }
+    machine_Machine_execute(self, inst);
   }
 }
-inline void __nelua_print5(nlstringview a1) {
+inline void nelua_stdout_write_stringview(nlstringview s) {
+  if(s.data && s.size > 0) {
+    fwrite((char*)s.data, s.size, 1, stdout);
+  }
+}
+inline void __nelua_print3(nlstringview a1) {
   nelua_stdout_write_stringview(a1);
   printf("\n");
 }
@@ -905,12 +875,13 @@ inline nlstringview nelua_cstring2stringview(char *s) {
 }
 int nelua_main(int nelua_argc, char** nelua_argv) {
   if(nelua_argc != 2) {
-    __nelua_print5(((nlstringview){__strlit83, 37}));
+    __nelua_print3(((nlstringview){__strlit81, 37}));
     exit(1);
   }
   riscvm_filename = ((char**)nelua_argv)[1];
   machine_Machine_loadfile(&riscvm_machine, nelua_cstring2stringview(riscvm_filename));
   machine_Machine_run(&riscvm_machine);
+  exit((int)riscvm_machine.exitcode);
   return 0;
 }
 int main(int argc, char **argv) {

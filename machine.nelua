@@ -31,9 +31,11 @@ global SYSCALLS = @enum{
 
 -- The CPU record with registers.
 global Machine = @record{
-  pc: int64,                  -- program counter
-  regs: [32]uint64,           -- registers
-  memory: [MEMORY_SIZE]uint8  -- memory
+  running: boolean,
+  pc: int64,                    -- program counter
+  regs: [32]uint64,             -- program registers
+  memory: [MEMORY_SIZE]uint8,  -- program memory
+  exitcode: int64,
 }
 
 -- Load instruction and data from a binary file into memory.
@@ -117,14 +119,19 @@ local function rimm(inst: uint32, instoff: uint32 <comptime>, immend: uint32 <co
   local immbeg: uint32 <comptime> = immend
   ## end
   local a: uint32 <comptime> = (((1 << (immend + 1)) - 1) & (~((1 << immbeg) - 1)))
-  return (inst >> (instoff - immbeg)) & a
+  ## if instoff.value > immbeg.value then
+    return (inst >> (instoff - immbeg)) & a
+  ## else
+    return (inst << (immbeg - instoff)) & a
+  ## end
 end
 
 -- Implement all system calls.
 function Machine:handle_syscall(code: uint64): uint64
   switch code do
   case SYSCALLS.EXIT then
-    print('exit', self.regs[REGISTERS.A0])
+    self.running = false
+    self.exitcode = (@int64)(self.regs[REGISTERS.A0])
   case SYSCALLS.ABORT then
     error('aborted!')
   case SYSCALLS.MEMSET then
@@ -146,7 +153,7 @@ function Machine:handle_syscall(code: uint64): uint64
 end
 
 -- Execute an instruction.
-function Machine:execute(inst: uint32): boolean
+function Machine:execute(inst: uint32) <inline>
   local opcode: uint32 = rbits(inst, 6, 0)
   local rd: uint32 = rbits(inst, 11, 7)
   local rs1: uint32 = rbits(inst, 19, 15)
@@ -181,7 +188,7 @@ function Machine:execute(inst: uint32): boolean
     end
   case 0b0100011 then -- store
     local funct3 = rbits(inst, 14, 12)
-    local imm = sext(rimm(inst, 25, 11, 5)|rimm(inst, 7, 4, 0), 12)
+    local imm = sext(rimm(inst, 25, 11, 5)|rd, 12)
     local addr = self.regs[rs1] + (@uint64)(imm)
     local val = self.regs[rs2]
     switch funct3 do
@@ -276,13 +283,15 @@ function Machine:execute(inst: uint32): boolean
     case 0b001 then ## debug_inst('slliw', {rd, rs1}, {imm})
       val = (@int32)(val << imm)
     case 0b101 then
-      local shamt = rbits(inst, 24, 20)
+      local shamt = rs2
       local funct7 = rbits(inst, 31, 25)
       switch funct7 do
       case 0b0000000 then ## debug_inst('srliw', {rd, rs1}, {shamt})
         val = (@int32)(val >> shamt)
       case 0b0100000 then ## debug_inst('sraiw', {rd, rs1}, {shamt})
         val = (@int32)(val >>> shamt)
+      else
+        error('illegal op-imm-32 shift instruction')
       end
     else
       error('illegal op-imm-32 instruction')
@@ -324,23 +333,25 @@ function Machine:execute(inst: uint32): boolean
     local imm = sext(rimm(inst, 12, 31, 12), 32)
     ## debug_inst('auipc', {rd}, {imm})
     if likely(rd ~= 0) then
-      self.regs[rd] = self.pc + imm - 4
+      self.regs[rd] = self.pc + imm
     end
   case 0b1101111 then -- jal
     local imm = sext(rimm(inst, 31, 20)|rimm(inst, 21, 10, 1)|rimm(inst, 20, 11)|rimm(inst, 12, 19, 12), 21)
     ## debug_inst('jal', {rd}, {imm})
     if likely(rd ~= 0) then
-      self.regs[rd] = self.pc
+      self.regs[rd] = self.pc + 4
     end
-    self.pc = self.pc + imm - 4
+    self.pc = self.pc + imm
+    return
   case 0b1100111 then -- jalr
     local imm = sext(rimm(inst, 20, 11, 0), 12)
     ## debug_inst('jalr', {rd, rs1}, {imm})
-    local val = self.pc
+    local pc = self.pc + 4
     self.pc = ((self.regs[rs1] + imm) & ~1)
     if unlikely(rd ~= 0) then
-      self.regs[rd] = val
+      self.regs[rd] = pc
     end
+    return
   case 0b1100011 then -- branches
     local funct3 = rbits(inst, 14, 12)
     local imm = sext(rimm(inst, 31, 12)|rimm(inst, 25, 10, 5)|rimm(inst, 8, 4, 1)|rimm(inst, 7, 11), 13)
@@ -363,7 +374,8 @@ function Machine:execute(inst: uint32): boolean
       error('illegal branch instruction')
     end
     if cond then
-      self.pc = self.pc + imm - 4
+      self.pc = self.pc + imm
+      return
     end
   case 0b0001111 then -- fence
     -- fence instruction does nothing because this emulator executes an
@@ -375,30 +387,26 @@ function Machine:execute(inst: uint32): boolean
     case 0b000000000000 then
       local code = self.regs[REGISTERS.A7]
       ## debug_inst('ecall', {}, {code})
-      if code == SYSCALLS.EXIT then
-        return false
-      end
       self.regs[REGISTERS.A0] = self:handle_syscall(code)
     case 0b000000000001 then ## debug_inst('ebreak')
-      return false
+      self.exitcode = -1
+      self.running = false
     else
       error('illegal system instruction')
     end
   else
-    print('opcode:', opcode, 'pc:', self.pc)
+    ## debug_inst('invop', {}, {opcode})
     error('illegal opcode')
   end
-  return true
+  self.pc = self.pc + 4
 end
 
 -- Run until the guest calls exit system call.
 -- Any error terminates the application.
-function Machine:run()
-  while true do
+function Machine:run() <noinline>
+  self.running = true
+  while likely(self.running) do
     local inst = self:fetch()
-    self.pc = self.pc + 4
-    if not self:execute(inst) then
-      break
-    end
+    self:execute(inst)
   end
 end
