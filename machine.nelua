@@ -1,0 +1,404 @@
+require 'C.stdio'
+require 'C.string'
+
+global MEMORY_SIZE <comptime> = 1024*1024*128
+global MEMORY_BASE <comptime> = 0x1000
+global REGISTERS = @enum {
+  ZERO = 0, RA, SP, GP, TP, T0, T1, T2, S0, S1, A0, A1, A2, A3, A4, A5,
+  A6, A7, S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, T3, T4, T5, T6
+}
+local REGNAMES: stringview[32] = {
+  "zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2", "s0", "s1", "a0",  "a1",  "a2", "a3", "a4", "a5",
+  "a6",   "a7", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
+}
+global SYSCALLS = @enum{
+  EXIT      = 10000,
+  ABORT     = 10001,
+
+  -- MALLOC    = 10002,
+  -- CALLOC    = 10003,
+  -- REALLOC   = 10004,
+  -- FREE      = 10005,
+
+  -- MEMCPY    = 10006,
+  MEMSET    = 10007,
+  -- MEMMOVE   = 10008,
+  -- MEMCMP    = 10009,
+
+  PRINTS    = 10101,
+  PRINTI    = 10102,
+}
+
+-- The CPU record with registers.
+global Machine = @record{
+  pc: int64,                  -- program counter
+  regs: [32]uint64,           -- registers
+  memory: [MEMORY_SIZE]uint8  -- memory
+}
+
+-- Load instruction and data from a binary file into memory.
+function Machine:loadfile(filename: stringview)
+  local fp = C.fopen(filename, 'rb')
+  if not fp then error('failed to open file') end
+  C.fseek(fp, 0, C.SEEK_END)
+  local size = C.ftell(fp)
+  C.fseek(fp, 0, C.SEEK_SET)
+  C.fread(&self.memory[MEMORY_BASE], size, 1, fp)
+  C.fclose(fp)
+  self.regs[REGISTERS.SP] = MEMORY_SIZE
+  self.pc = MEMORY_BASE
+end
+
+-- Fetch next instruction.
+function Machine:fetch(): uint32 <inline>
+  return $(@*uint32)(&self.memory[self.pc])
+end
+
+-- Read a value from guest memory.
+function Machine:read(T: type, addr: uint64) <inline>
+  local UT = #[T.value:unsigned_type()]#
+  return (@T)($(@*UT)(&self.memory[addr]))
+end
+
+-- Return a host pointer to address in guest memory.
+function Machine:getptr(addr: uint64): pointer <inline>
+  return (@pointer)(&self.memory[addr])
+end
+
+-- Write a value to guest memory.
+function Machine:write(addr: uint64, val: auto) <inline>
+  local T = #[val.type]#
+  local p = (@*T)(&self.memory[addr])
+  $p = val
+end
+
+-- Dump all registers (for debugging).
+function Machine:dump_registers()
+  ## for i=0,31,4 do
+    ## for j=0,3 do
+      ## local k = i + j
+      C.printf(#['x'..k..' (%s) = 0x%08x\t'..(j==3 and '\n' or '')]#, REGNAMES[#[k]#], self.regs[#[k]#])
+    ## end
+  ## end
+  C.printf('pc = 0x%08x\n', self.pc)
+end
+
+-- Macro for debugging instructions.
+## local function debug_inst(name, regs, vals)
+  ## if DEBUG then
+    C.printf(#['\t0x%x:\t\t0x%08x\t'..name]#, self.pc, inst)
+    ## if regs then
+      ## for _,ri in ipairs(regs) do
+        C.printf(' %s', REGNAMES[#[ri]#])
+      ## end
+    ## end
+    ## if vals then
+      ## for i,val in ipairs(vals) do
+        C.printf(' %d', #[val]#)
+      ## end
+    ## end
+    C.puts('')
+  ## end
+## end
+
+-- Sign extend an integer with `n` bits to 64 bits.
+local function sext(val: uint32, n: int32 <comptime>): int64 <inline,nosideeffect>
+  return (@int64)(((@int32)(val) << (32 - n)) >>> (32 - n))
+end
+
+-- Read a range of bits from an instruction.
+local function rbits(inst: uint32, bend: uint32 <comptime>, bbeg: uint32 <comptime>): uint32 <inline,nosideeffect>
+  return (inst >> bbeg) & ((1_u32<<(bend - bbeg + 1_u32))-1_u32)
+end
+
+-- Utility to read immediate encoding from instructions.
+local function rimm(inst: uint32, instoff: uint32 <comptime>, immend: uint32 <comptime>, immbeg: auto <comptime>): uint32 <inline,nosideeffect>
+  ## if immbeg.type.is_niltype then
+  local immbeg: uint32 <comptime> = immend
+  ## end
+  local a: uint32 <comptime> = (((1 << (immend + 1)) - 1) & (~((1 << immbeg) - 1)))
+  return (inst >> (instoff - immbeg)) & a
+end
+
+-- Implement all system calls.
+function Machine:handle_syscall(code: uint64): uint64
+  switch code do
+  case SYSCALLS.EXIT then
+    print('exit', self.regs[REGISTERS.A0])
+  case SYSCALLS.ABORT then
+    error('aborted!')
+  case SYSCALLS.MEMSET then
+    local dest = self:getptr(self.regs[REGISTERS.A0])
+    local c = self.regs[REGISTERS.A1]
+    local len = self.regs[REGISTERS.A2]
+    local res = C.memset(dest, c, len)
+    return (@uint64)(res)
+  case SYSCALLS.PRINTS then
+    local s = (@cstring)(self:getptr(self.regs[REGISTERS.A0]))
+    print(s)
+  case SYSCALLS.PRINTI then
+    local i = (@int64)(self.regs[REGISTERS.A0])
+    print(i)
+  else
+    error('illegal system call')
+  end
+  return 0
+end
+
+-- Execute an instruction.
+function Machine:execute(inst: uint32): boolean
+  local opcode: uint32 = rbits(inst, 6, 0)
+  local rd: uint32 = rbits(inst, 11, 7)
+  local rs1: uint32 = rbits(inst, 19, 15)
+  local rs2: uint32 = rbits(inst, 24, 20)
+
+  switch opcode do
+  case 0b0000011 then -- load
+    local funct3 = rbits(inst, 14, 12)
+    local imm = sext(rimm(inst, 20, 11, 0), 12)
+    local addr = self.regs[rs1] + (@uint64)(imm)
+    local val: int64 <noinit>
+    switch funct3 do
+    case 0b000 then ## debug_inst('lb', {rd, rs1}, {imm})
+      val = self:read(@int8, addr)
+    case 0b001 then ## debug_inst('lh', {rd, rs1}, {imm})
+      val = self:read(@int16, addr)
+    case 0b010 then ## debug_inst('lw', {rd, rs1}, {imm})
+      val = self:read(@int32, addr)
+    case 0b011 then ## debug_inst('ld', {rd, rs1}, {imm})
+      val = self:read(@int64, addr)
+    case 0b100 then ## debug_inst('lbu', {rd, rs1}, {imm})
+      val = self:read(@uint8, addr)
+    case 0b101 then ## debug_inst('lhu', {rd, rs1}, {imm})
+      val = self:read(@uint16, addr)
+    case 0b110 then ## debug_inst('lwu', {rd, rs1}, {imm})
+      val = self:read(@uint32, addr)
+    else
+      error('illegal load instruction')
+    end
+    if likely(rd ~= 0) then
+      self.regs[rd] = (@uint64)(val)
+    end
+  case 0b0100011 then -- store
+    local funct3 = rbits(inst, 14, 12)
+    local imm = sext(rimm(inst, 25, 11, 5)|rimm(inst, 7, 4, 0), 12)
+    local addr = self.regs[rs1] + (@uint64)(imm)
+    local val = self.regs[rs2]
+    switch funct3 do
+    case 0b000 then ## debug_inst('sb', {rs2, rs1}, {imm})
+      self:write(addr, (@uint8)(val))
+    case 0b001 then ## debug_inst('sh', {rs2, rs1}, {imm})
+      self:write(addr, (@uint16)(val))
+    case 0b010 then ## debug_inst('sw', {rs2, rs1}, {imm})
+      self:write(addr, (@uint32)(val))
+    case 0b011 then ## debug_inst('sd', {rs2, rs1}, {imm})
+      self:write(addr, val)
+    else
+      error('illegal store instruction')
+    end
+  case 0b0010011 then -- op-imm
+    local funct3 = rbits(inst, 14, 12)
+    local imm = sext(rimm(inst, 20, 11, 0), 12)
+    local shamt = rbits(inst, 25, 20)
+    local val: int64 = (@int64)(self.regs[rs1])
+    switch funct3 do
+    case 0b000 then ## debug_inst('addi', {rd, rs1}, {imm})
+      val = val + imm
+    case 0b001 then ## debug_inst('slli', {rd, rs1}, {shamt})
+      val = val << shamt
+    case 0b010 then ## debug_inst('slti', {rd, rs1}, {imm})
+      if val < imm then val = 1 else val = 0 end
+    case 0b011 then ## debug_inst('sltiu', {rd, rs1}, {imm})
+      if (@uint64)(val) < (@uint64)(imm) then val = 1 else val = 0 end
+    case 0b100 then ## debug_inst('xori', {rd, rs1}, {imm})
+      val = val ~ imm
+    case 0b101 then
+      local funct6 = rbits(inst, 31, 26)
+      switch funct6 do
+      case 0b000000 then ## debug_inst('srli', {rd, rs1}, {shamt})
+        val = val >> shamt
+      case 0b010000 then ## debug_inst('srai', {rd, rs1}, {shamt})
+        val = val >>> shamt
+      else
+        error('illegal op-imm shift instruction')
+      end
+    case 0b110 then ## debug_inst('ori', {rd, rs1}, {imm})
+      val = val | imm
+    case 0b111 then ## debug_inst('andi', {rd, rs1}, {imm})
+      val = val & imm
+    else
+      error('illegal op-imm instruction')
+    end
+    if likely(rd ~= 0) then
+      self.regs[rd] = (@uint64)(val)
+    end
+  case 0b0110011 then -- op
+    local funct3 = rbits(inst, 14, 12)
+    local funct7 = rbits(inst, 31, 25)
+    local funct10 = (funct7 << 3) | funct3
+    local val1: int64 = (@int64)(self.regs[rs1])
+    local val2: int64 = (@int64)(self.regs[rs2])
+    local val: int64 <noinit>
+    switch funct10 do
+    case 0b0000000000 then ## debug_inst('add', {rd, rs1, rs2})
+      val = val1 + val2
+    case 0b0100000000 then ## debug_inst('sub', {rd, rs1, rs2})
+      val = val1 - val2
+    case 0b0000000001 then ## debug_inst('sll', {rd, rs1, rs2})
+      val = val1 << (val2 & 0b11111)
+    case 0b0000000010 then ## debug_inst('slt', {rd, rs1, rs2})
+      if val1 < val2 then val = 1 else val = 0 end
+    case 0b0000000011 then ## debug_inst('sltu', {rd, rs1, rs2})
+      if (@uint64)(val1) < (@uint64)(val2) then val = 1 else val = 0 end
+    case 0b0000000100 then ## debug_inst('xor', {rd, rs1, rs2})
+      val = val1 ~ val2
+    case 0b0000000101 then ## debug_inst('srl', {rd, rs1, rs2})
+      val = val1 >> (val2 & 0b11111)
+    case 0b0100000101 then ## debug_inst('sra', {rd, rs1, rs2})
+      val = val1 >>> (val2 & 0b11111)
+    case 0b0000000110 then ## debug_inst('or', {rd, rs1, rs2})
+      val = val1 | val2
+    case 0b0000000111 then ## debug_inst('and', {rd, rs1, rs2})
+      val = val1 & val2
+    else
+      error('illegal op instruction')
+    end
+    if likely(rd ~= 0) then
+      self.regs[rd] = (@uint64)(val)
+    end
+  case 0b0011011 then -- op-imm-32
+    local funct3 = rbits(inst, 14, 12)
+    local imm = sext(rimm(inst, 20, 11, 0), 12)
+    local val: int64 = (@int64)(self.regs[rs1])
+    switch funct3 do
+    case 0b000 then ## debug_inst('addiw', {rd, rs1}, {imm})
+      val = (@int32)(val + imm)
+    case 0b001 then ## debug_inst('slliw', {rd, rs1}, {imm})
+      val = (@int32)(val << imm)
+    case 0b101 then
+      local shamt = rbits(inst, 24, 20)
+      local funct7 = rbits(inst, 31, 25)
+      switch funct7 do
+      case 0b0000000 then ## debug_inst('srliw', {rd, rs1}, {shamt})
+        val = (@int32)(val >> shamt)
+      case 0b0100000 then ## debug_inst('sraiw', {rd, rs1}, {shamt})
+        val = (@int32)(val >>> shamt)
+      end
+    else
+      error('illegal op-imm-32 instruction')
+    end
+    if likely(rd ~= 0) then
+      self.regs[rd] = (@uint64)(val)
+    end
+  case 0b0111011 then -- op-32
+    local funct3 = rbits(inst, 14, 12)
+    local funct7 = rbits(inst, 31, 25)
+    local funct10 = (funct7 << 3) | funct3
+    local val1: int64 = (@int64)(self.regs[rs1])
+    local val2: int64 = (@int64)(self.regs[rs2])
+    local val: int64 <noinit>
+    switch funct10 do
+    case 0b0000000000 then ## debug_inst('addw', {rd, rs1, rs2})
+      val = (@int32)(val1 + val2)
+    case 0b0100000000 then ## debug_inst('subw', {rd, rs1, rs2})
+      val = (@int32)(val1 - val2)
+    case 0b0000000001 then ## debug_inst('sllw', {rd, rs1, rs2})
+      val = (@int32)(val1 << (val2 & 0b11111))
+    case 0b0000000101 then ## debug_inst('srlw', {rd, rs1, rs2})
+      val = (@int32)(val1 >> (val2 & 0b11111))
+    case 0b0100000101 then ## debug_inst('sraw', {rd, rs1, rs2})
+      val = (@int32)(val1 >>> (val2 & 0b11111))
+    else
+      error('illegal op-32 instruction')
+    end
+    if likely(rd ~= 0) then
+      self.regs[rd] = (@uint64)(val)
+    end
+  case 0b0110111 then -- lui
+    local imm = sext(rimm(inst, 12, 31, 12), 32)
+    ## debug_inst('lui', {rd}, {imm})
+    if likely(rd ~= 0) then
+      self.regs[rd] = imm
+    end
+  case 0b0010111 then -- auipc
+    local imm = sext(rimm(inst, 12, 31, 12), 32)
+    ## debug_inst('auipc', {rd}, {imm})
+    if likely(rd ~= 0) then
+      self.regs[rd] = self.pc + imm - 4
+    end
+  case 0b1101111 then -- jal
+    local imm = sext(rimm(inst, 31, 20)|rimm(inst, 21, 10, 1)|rimm(inst, 20, 11)|rimm(inst, 12, 19, 12), 21)
+    ## debug_inst('jal', {rd}, {imm})
+    if likely(rd ~= 0) then
+      self.regs[rd] = self.pc
+    end
+    self.pc = self.pc + imm - 4
+  case 0b1100111 then -- jalr
+    local imm = sext(rimm(inst, 20, 11, 0), 12)
+    ## debug_inst('jalr', {rd, rs1}, {imm})
+    local val = self.pc
+    self.pc = ((self.regs[rs1] + imm) & ~1)
+    if unlikely(rd ~= 0) then
+      self.regs[rd] = val
+    end
+  case 0b1100011 then -- branches
+    local funct3 = rbits(inst, 14, 12)
+    local imm = sext(rimm(inst, 31, 12)|rimm(inst, 25, 10, 5)|rimm(inst, 8, 4, 1)|rimm(inst, 7, 11), 13)
+    local val1, val2 = self.regs[rs1], self.regs[rs2]
+    local cond: boolean <noinit>
+    switch funct3 do
+    case 0b000 then ## debug_inst('beq', {rs1, rs2}, {imm})
+      cond = val1 == val2
+    case 0b001 then ## debug_inst('bne', {rs1, rs2}, {imm})
+      cond = val1 ~= val2
+    case 0b100 then ## debug_inst('blt', {rs1, rs2}, {imm})
+      cond = (@int64)(val1) < (@int64)(val2)
+    case 0b101 then ## debug_inst('bge', {rs1, rs2}, {imm})
+      cond = (@int64)(val1) >= (@int64)(val2)
+    case 0b110 then ## debug_inst('bltu', {rs1, rs2}, {imm})
+      cond = val1 < val2
+    case 0b111 then ## debug_inst('bgeu', {rs1, rs2}, {imm})
+      cond = val1 >= val2
+    else
+      error('illegal branch instruction')
+    end
+    if cond then
+      self.pc = self.pc + imm - 4
+    end
+  case 0b0001111 then -- fence
+    -- fence instruction does nothing because this emulator executes an
+    -- instruction sequentially on a single thread.
+    ## debug_inst('fence')
+  case 0b1110011 then -- system call/break
+    local funct11 = rbits(inst, 31, 20)
+    switch funct11 do
+    case 0b000000000000 then
+      local code = self.regs[REGISTERS.A7]
+      ## debug_inst('ecall', {}, {code})
+      if code == SYSCALLS.EXIT then
+        return false
+      end
+      self.regs[REGISTERS.A0] = self:handle_syscall(code)
+    case 0b000000000001 then ## debug_inst('ebreak')
+      return false
+    else
+      error('illegal system instruction')
+    end
+  else
+    print('opcode:', opcode, 'pc:', self.pc)
+    error('illegal opcode')
+  end
+  return true
+end
+
+-- Run until the guest calls exit system call.
+-- Any error terminates the application.
+function Machine:run()
+  while true do
+    local inst = self:fetch()
+    self.pc = self.pc + 4
+    if not self:execute(inst) then
+      break
+    end
+  end
+end
