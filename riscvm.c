@@ -145,30 +145,6 @@ static char __strlit65[19] = "x30 (%s) = 0x%08x\t";
 static char __strlit66[20] = "x31 (%s) = 0x%08x\t\n";
 static char __strlit67[13] = "pc = 0x%08x\n";
 static void machine_Machine_dump_registers(machine_Machine_ptr self);
-static inline int64_t machine_sext__1(uint32_t val, nlniltype n);
-static inline int64_t machine_sext__2(uint32_t val, nlniltype n);
-static inline int64_t machine_sext__3(uint32_t val, nlniltype n);
-static inline int64_t machine_sext__4(uint32_t val, nlniltype n);
-static inline uint32_t machine_rbits__1(uint32_t inst, nlniltype bend, nlniltype bbeg);
-static inline uint32_t machine_rbits__2(uint32_t inst, nlniltype bend, nlniltype bbeg);
-static inline uint32_t machine_rbits__3(uint32_t inst, nlniltype bend, nlniltype bbeg);
-static inline uint32_t machine_rbits__4(uint32_t inst, nlniltype bend, nlniltype bbeg);
-static inline uint32_t machine_rbits__5(uint32_t inst, nlniltype bend, nlniltype bbeg);
-static inline uint32_t machine_rbits__6(uint32_t inst, nlniltype bend, nlniltype bbeg);
-static inline uint32_t machine_rbits__7(uint32_t inst, nlniltype bend, nlniltype bbeg);
-static inline uint32_t machine_rbits__8(uint32_t inst, nlniltype bend, nlniltype bbeg);
-static inline uint32_t machine_rbits__9(uint32_t inst, nlniltype bend, nlniltype bbeg);
-static inline uint32_t machine_rimm__1(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg);
-static inline uint32_t machine_rimm__2(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg);
-static inline uint32_t machine_rimm__3(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg);
-static inline uint32_t machine_rimm__4(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg);
-static inline uint32_t machine_rimm__5(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg);
-static inline uint32_t machine_rimm__6(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg);
-static inline uint32_t machine_rimm__7(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg);
-static inline uint32_t machine_rimm__8(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg);
-static inline uint32_t machine_rimm__9(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg);
-static inline uint32_t machine_rimm__10(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg);
-static inline uint32_t machine_rimm__11(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg);
 static char __strlit68[9] = "aborted!";
 #include <inttypes.h>
 static void __nelua_print1(char* a1);
@@ -306,78 +282,6 @@ void machine_Machine_dump_registers(machine_Machine_ptr self) {
   printf(__strlit66, machine_REGNAMES.data[31], (*(nluint64_arr32*)self->regs).data[31]);
   printf(__strlit67, self->pc);
 }
-int64_t machine_sext__1(uint32_t val, nlniltype n) {
-  return (int64_t)(((int32_t)val << 20) >> 20);
-}
-int64_t machine_sext__2(uint32_t val, nlniltype n) {
-  return (int64_t)(((int32_t)val << 0) >> 0);
-}
-int64_t machine_sext__3(uint32_t val, nlniltype n) {
-  return (int64_t)(((int32_t)val << 11) >> 11);
-}
-int64_t machine_sext__4(uint32_t val, nlniltype n) {
-  return (int64_t)(((int32_t)val << 19) >> 19);
-}
-uint32_t machine_rbits__1(uint32_t inst, nlniltype bend, nlniltype bbeg) {
-  return ((inst >> 0U) & 127U);
-}
-uint32_t machine_rbits__2(uint32_t inst, nlniltype bend, nlniltype bbeg) {
-  return ((inst >> 7U) & 31U);
-}
-uint32_t machine_rbits__3(uint32_t inst, nlniltype bend, nlniltype bbeg) {
-  return ((inst >> 15U) & 31U);
-}
-uint32_t machine_rbits__4(uint32_t inst, nlniltype bend, nlniltype bbeg) {
-  return ((inst >> 20U) & 31U);
-}
-uint32_t machine_rbits__5(uint32_t inst, nlniltype bend, nlniltype bbeg) {
-  return ((inst >> 12U) & 7U);
-}
-uint32_t machine_rbits__6(uint32_t inst, nlniltype bend, nlniltype bbeg) {
-  return ((inst >> 20U) & 63U);
-}
-uint32_t machine_rbits__7(uint32_t inst, nlniltype bend, nlniltype bbeg) {
-  return ((inst >> 26U) & 63U);
-}
-uint32_t machine_rbits__8(uint32_t inst, nlniltype bend, nlniltype bbeg) {
-  return ((inst >> 25U) & 127U);
-}
-uint32_t machine_rbits__9(uint32_t inst, nlniltype bend, nlniltype bbeg) {
-  return ((inst >> 20U) & 4095U);
-}
-uint32_t machine_rimm__1(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
-  return ((inst >> 20) & 4095U);
-}
-uint32_t machine_rimm__2(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
-  return ((inst >> 20) & 4064U);
-}
-uint32_t machine_rimm__3(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
-  return ((inst << 0) & 4294963200U);
-}
-uint32_t machine_rimm__4(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
-  return ((inst >> 11U) & 1048576U);
-}
-uint32_t machine_rimm__5(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
-  return ((inst >> 20) & 2046U);
-}
-uint32_t machine_rimm__6(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
-  return ((inst >> 9U) & 2048U);
-}
-uint32_t machine_rimm__7(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
-  return ((inst << 0) & 1044480U);
-}
-uint32_t machine_rimm__8(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
-  return ((inst >> 19U) & 4096U);
-}
-uint32_t machine_rimm__9(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
-  return ((inst >> 20) & 2016U);
-}
-uint32_t machine_rimm__10(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
-  return ((inst >> 7) & 30U);
-}
-uint32_t machine_rimm__11(uint32_t inst, nlniltype instoff, nlniltype immend, nlniltype immbeg) {
-  return ((inst << 4U) & 2048U);
-}
 inline void __nelua_print1(char* a1) {
   printf("%s", a1);
   printf("\n");
@@ -439,14 +343,14 @@ inline int64_t nelua_asr_int64(int64_t a, int64_t b) {
   else return 0;
 }
 void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
-  uint32_t opcode = machine_rbits__1(inst, NLNIL, NLNIL);
-  uint32_t rd = machine_rbits__2(inst, NLNIL, NLNIL);
-  uint32_t rs1 = machine_rbits__3(inst, NLNIL, NLNIL);
-  uint32_t rs2 = machine_rbits__4(inst, NLNIL, NLNIL);
+  uint32_t opcode = ((inst >> 0) & 127);
+  uint32_t rd = ((inst >> 7) & 31);
+  uint32_t rs1 = ((inst >> 15) & 31);
+  uint32_t rs2 = ((inst >> 20) & 31);
   switch(opcode) {
     case 0x3: {
-      uint32_t funct3 = machine_rbits__5(inst, NLNIL, NLNIL);
-      int64_t imm = machine_sext__1(machine_rimm__1(inst, NLNIL, NLNIL, NLNIL), NLNIL);
+      uint32_t funct3 = ((inst >> 12) & 7);
+      int64_t imm = (int64_t)(((int32_t)((inst >> 20) & 4095) << 20) >> 20);
       uint64_t addr = ((*(nluint64_arr32*)self->regs).data[rs1] + (uint64_t)imm);
       int64_t val;
       switch(funct3) {
@@ -489,8 +393,8 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
       break;
     }
     case 0x23: {
-      uint32_t funct3 = machine_rbits__5(inst, NLNIL, NLNIL);
-      int64_t imm = machine_sext__1((machine_rimm__2(inst, NLNIL, NLNIL, NLNIL) | rd), NLNIL);
+      uint32_t funct3 = ((inst >> 12) & 7);
+      int64_t imm = (int64_t)(((int32_t)(((inst >> 20) & 4064) | ((inst >> 7) & 31)) << 20) >> 20);
       uint64_t addr = ((*(nluint64_arr32*)self->regs).data[rs1] + (uint64_t)imm);
       uint64_t val = (*(nluint64_arr32*)self->regs).data[rs2];
       switch(funct3) {
@@ -518,9 +422,9 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
       break;
     }
     case 0x13: {
-      uint32_t funct3 = machine_rbits__5(inst, NLNIL, NLNIL);
-      int64_t imm = machine_sext__1(machine_rimm__1(inst, NLNIL, NLNIL, NLNIL), NLNIL);
-      uint32_t shamt = machine_rbits__6(inst, NLNIL, NLNIL);
+      uint32_t funct3 = ((inst >> 12) & 7);
+      int64_t imm = (int64_t)(((int32_t)((inst >> 20) & 4095) << 20) >> 20);
+      uint32_t shamt = ((inst >> 20) & 63);
       int64_t val = (int64_t)(*(nluint64_arr32*)self->regs).data[rs1];
       switch(funct3) {
         case 0x0: {
@@ -552,7 +456,7 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
           break;
         }
         case 0x5: {
-          uint32_t funct6 = machine_rbits__7(inst, NLNIL, NLNIL);
+          uint32_t funct6 = ((inst >> 26) & 63);
           switch((funct6 >> 4)) {
             case 0x0: {
               val = (nelua_shr_int64(val, shamt));
@@ -588,8 +492,8 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
       break;
     }
     case 0x33: {
-      uint32_t funct3 = machine_rbits__5(inst, NLNIL, NLNIL);
-      uint32_t funct7 = machine_rbits__8(inst, NLNIL, NLNIL);
+      uint32_t funct3 = ((inst >> 12) & 7);
+      uint32_t funct7 = ((inst >> 25) & 127);
       int64_t val1 = (int64_t)(*(nluint64_arr32*)self->regs).data[rs1];
       int64_t val2 = (int64_t)(*(nluint64_arr32*)self->regs).data[rs2];
       int64_t val;
@@ -653,8 +557,8 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
       break;
     }
     case 0x1b: {
-      uint32_t funct3 = machine_rbits__5(inst, NLNIL, NLNIL);
-      int64_t imm = machine_sext__1(machine_rimm__1(inst, NLNIL, NLNIL, NLNIL), NLNIL);
+      uint32_t funct3 = ((inst >> 12) & 7);
+      int64_t imm = (int64_t)(((int32_t)((inst >> 20) & 4095) << 20) >> 20);
       int64_t val = (int64_t)(*(nluint64_arr32*)self->regs).data[rs1];
       switch(funct3) {
         case 0x0: {
@@ -667,7 +571,7 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
         }
         case 0x5: {
           uint32_t shamt = rs2;
-          uint32_t funct7 = machine_rbits__8(inst, NLNIL, NLNIL);
+          uint32_t funct7 = ((inst >> 25) & 127);
           switch((funct7 >> 5)) {
             case 0x0: {
               val = (int64_t)(int32_t)(nelua_shr_int64(val, shamt));
@@ -695,8 +599,8 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
       break;
     }
     case 0x3b: {
-      uint32_t funct3 = machine_rbits__5(inst, NLNIL, NLNIL);
-      uint32_t funct7 = machine_rbits__8(inst, NLNIL, NLNIL);
+      uint32_t funct3 = ((inst >> 12) & 7);
+      uint32_t funct7 = ((inst >> 25) & 127);
       int64_t val1 = (int64_t)(*(nluint64_arr32*)self->regs).data[rs1];
       int64_t val2 = (int64_t)(*(nluint64_arr32*)self->regs).data[rs2];
       int64_t val;
@@ -732,21 +636,21 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
       break;
     }
     case 0x37: {
-      int64_t imm = machine_sext__2(machine_rimm__3(inst, NLNIL, NLNIL, NLNIL), NLNIL);
+      int64_t imm = (int64_t)(((int32_t)((inst << 0) & 4294963200) << 0) >> 0);
       if(nelua_likely((rd != 0U))) {
         (*(nluint64_arr32*)self->regs).data[rd] = (uint64_t)imm;
       }
       break;
     }
     case 0x17: {
-      int64_t imm = machine_sext__2(machine_rimm__3(inst, NLNIL, NLNIL, NLNIL), NLNIL);
+      int64_t imm = (int64_t)(((int32_t)((inst << 0) & 4294963200) << 0) >> 0);
       if(nelua_likely((rd != 0U))) {
         (*(nluint64_arr32*)self->regs).data[rd] = (uint64_t)(self->pc + imm);
       }
       break;
     }
     case 0x6f: {
-      int64_t imm = machine_sext__3((((machine_rimm__4(inst, NLNIL, NLNIL, NLNIL) | machine_rimm__5(inst, NLNIL, NLNIL, NLNIL)) | machine_rimm__6(inst, NLNIL, NLNIL, NLNIL)) | machine_rimm__7(inst, NLNIL, NLNIL, NLNIL)), NLNIL);
+      int64_t imm = (int64_t)(((int32_t)(((((inst >> 11) & 1048576) | ((inst >> 20) & 2046)) | ((inst >> 9) & 2048)) | ((inst << 0) & 1044480)) << 11) >> 11);
       if(nelua_likely((rd != 0U))) {
         (*(nluint64_arr32*)self->regs).data[rd] = (uint64_t)(self->pc + 4);
       }
@@ -755,7 +659,7 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
       break;
     }
     case 0x67: {
-      int64_t imm = machine_sext__1(machine_rimm__1(inst, NLNIL, NLNIL, NLNIL), NLNIL);
+      int64_t imm = (int64_t)(((int32_t)((inst >> 20) & 4095) << 20) >> 20);
       int64_t pc = (self->pc + 4);
       self->pc = (((*(nluint64_arr32*)self->regs).data[rs1] + imm) & -2);
       if(nelua_unlikely((rd != 0U))) {
@@ -765,8 +669,8 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
       break;
     }
     case 0x63: {
-      uint32_t funct3 = machine_rbits__5(inst, NLNIL, NLNIL);
-      int64_t imm = machine_sext__4((((machine_rimm__8(inst, NLNIL, NLNIL, NLNIL) | machine_rimm__9(inst, NLNIL, NLNIL, NLNIL)) | machine_rimm__10(inst, NLNIL, NLNIL, NLNIL)) | machine_rimm__11(inst, NLNIL, NLNIL, NLNIL)), NLNIL);
+      uint32_t funct3 = ((inst >> 12) & 7);
+      int64_t imm = (int64_t)(((int32_t)(((((inst >> 19) & 4096) | ((inst >> 20) & 2016)) | ((inst >> 7) & 30)) | ((inst << 4) & 2048)) << 19) >> 19);
       uint64_t val1 = (*(nluint64_arr32*)self->regs).data[rs1];
       uint64_t val2 = (*(nluint64_arr32*)self->regs).data[rs2];
       bool cond;
@@ -810,7 +714,7 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
       break;
     }
     case 0x73: {
-      uint32_t funct11 = machine_rbits__9(inst, NLNIL, NLNIL);
+      uint32_t funct11 = ((inst >> 20) & 4095);
       switch(funct11) {
         case 0x0: {
           uint64_t code = (*(nluint64_arr32*)self->regs).data[17];
