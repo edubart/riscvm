@@ -221,10 +221,10 @@ function Machine:execute(inst: uint32) <inline>
       val = val ~ imm
     case 0b101 then
       local funct6 = rbits(inst, 31, 26)
-      switch funct6 do
-      case 0b000000 then ## debug_inst('srli', {rd, rs1}, {shamt})
+      switch funct6 >> 4 do
+      case 0b00 then ## debug_inst('srli', {rd, rs1}, {shamt})
         val = val >> shamt
-      case 0b010000 then ## debug_inst('srai', {rd, rs1}, {shamt})
+      case 0b01 then ## debug_inst('srai', {rd, rs1}, {shamt})
         val = val >>> shamt
       else
         error('illegal op-imm shift instruction')
@@ -242,30 +242,29 @@ function Machine:execute(inst: uint32) <inline>
   case 0b0110011 then -- op
     local funct3 = rbits(inst, 14, 12)
     local funct7 = rbits(inst, 31, 25)
-    local funct10 = (funct7 << 3) | funct3
     local val1: int64 = (@int64)(self.regs[rs1])
     local val2: int64 = (@int64)(self.regs[rs2])
     local val: int64 <noinit>
-    switch funct10 do
-    case 0b0000000000 then ## debug_inst('add', {rd, rs1, rs2})
+    switch (funct7 >> 5) | funct3 do
+    case 0b00000 then ## debug_inst('add', {rd, rs1, rs2})
       val = val1 + val2
-    case 0b0100000000 then ## debug_inst('sub', {rd, rs1, rs2})
+    case 0b01000 then ## debug_inst('sub', {rd, rs1, rs2})
       val = val1 - val2
-    case 0b0000000001 then ## debug_inst('sll', {rd, rs1, rs2})
+    case 0b00001 then ## debug_inst('sll', {rd, rs1, rs2})
       val = val1 << (val2 & 0b11111)
-    case 0b0000000010 then ## debug_inst('slt', {rd, rs1, rs2})
+    case 0b00010 then ## debug_inst('slt', {rd, rs1, rs2})
       if val1 < val2 then val = 1 else val = 0 end
-    case 0b0000000011 then ## debug_inst('sltu', {rd, rs1, rs2})
+    case 0b00011 then ## debug_inst('sltu', {rd, rs1, rs2})
       if (@uint64)(val1) < (@uint64)(val2) then val = 1 else val = 0 end
-    case 0b0000000100 then ## debug_inst('xor', {rd, rs1, rs2})
+    case 0b00100 then ## debug_inst('xor', {rd, rs1, rs2})
       val = val1 ~ val2
-    case 0b0000000101 then ## debug_inst('srl', {rd, rs1, rs2})
+    case 0b00101 then ## debug_inst('srl', {rd, rs1, rs2})
       val = val1 >> (val2 & 0b11111)
-    case 0b0100000101 then ## debug_inst('sra', {rd, rs1, rs2})
+    case 0b01101 then ## debug_inst('sra', {rd, rs1, rs2})
       val = val1 >>> (val2 & 0b11111)
-    case 0b0000000110 then ## debug_inst('or', {rd, rs1, rs2})
+    case 0b00110 then ## debug_inst('or', {rd, rs1, rs2})
       val = val1 | val2
-    case 0b0000000111 then ## debug_inst('and', {rd, rs1, rs2})
+    case 0b00111 then ## debug_inst('and', {rd, rs1, rs2})
       val = val1 & val2
     else
       error('illegal op instruction')
@@ -285,10 +284,10 @@ function Machine:execute(inst: uint32) <inline>
     case 0b101 then
       local shamt = rs2
       local funct7 = rbits(inst, 31, 25)
-      switch funct7 do
-      case 0b0000000 then ## debug_inst('srliw', {rd, rs1}, {shamt})
+      switch funct7 >> 5 do
+      case 0b00 then ## debug_inst('srliw', {rd, rs1}, {shamt})
         val = (@int32)(val >> shamt)
-      case 0b0100000 then ## debug_inst('sraiw', {rd, rs1}, {shamt})
+      case 0b01 then ## debug_inst('sraiw', {rd, rs1}, {shamt})
         val = (@int32)(val >>> shamt)
       else
         error('illegal op-imm-32 shift instruction')
@@ -302,20 +301,19 @@ function Machine:execute(inst: uint32) <inline>
   case 0b0111011 then -- op-32
     local funct3 = rbits(inst, 14, 12)
     local funct7 = rbits(inst, 31, 25)
-    local funct10 = (funct7 << 3) | funct3
     local val1: int64 = (@int64)(self.regs[rs1])
     local val2: int64 = (@int64)(self.regs[rs2])
     local val: int64 <noinit>
-    switch funct10 do
-    case 0b0000000000 then ## debug_inst('addw', {rd, rs1, rs2})
+    switch (funct7 >> 5) | funct3 do
+    case 0b00000 then ## debug_inst('addw', {rd, rs1, rs2})
       val = (@int32)(val1 + val2)
-    case 0b0100000000 then ## debug_inst('subw', {rd, rs1, rs2})
+    case 0b01000 then ## debug_inst('subw', {rd, rs1, rs2})
       val = (@int32)(val1 - val2)
-    case 0b0000000001 then ## debug_inst('sllw', {rd, rs1, rs2})
+    case 0b00001 then ## debug_inst('sllw', {rd, rs1, rs2})
       val = (@int32)(val1 << (val2 & 0b11111))
-    case 0b0000000101 then ## debug_inst('srlw', {rd, rs1, rs2})
+    case 0b00101 then ## debug_inst('srlw', {rd, rs1, rs2})
       val = (@int32)(val1 >> (val2 & 0b11111))
-    case 0b0100000101 then ## debug_inst('sraw', {rd, rs1, rs2})
+    case 0b01101 then ## debug_inst('sraw', {rd, rs1, rs2})
       val = (@int32)(val1 >>> (val2 & 0b11111))
     else
       error('illegal op-32 instruction')
@@ -396,14 +394,14 @@ function Machine:execute(inst: uint32) <inline>
     end
   else
     ## debug_inst('invop', {}, {opcode})
-    error('illegal opcode')
+    error('illegal instruction')
   end
   self.pc = self.pc + 4
 end
 
 -- Run until the guest calls exit system call.
 -- Any error terminates the application.
-function Machine:run() <noinline>
+function Machine:run() <noinline, cattribute'optimize("no-crossjumping,no-gcse")'>
   self.running = true
   while likely(self.running) do
     local inst = self:fetch()

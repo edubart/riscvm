@@ -28,8 +28,6 @@ nelua_static_assert(sizeof(void*) == 8, "Nelua and C disagree on architecture si
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
-typedef FILE* FILE_ptr;
-typedef fpos_t* fpos_t_ptr;
 #include <string.h>
 typedef struct nlstringview nlstringview;
 typedef struct {uint8_t data[0];} nluint8_arr0;
@@ -147,15 +145,6 @@ static char __strlit65[19] = "x30 (%s) = 0x%08x\t";
 static char __strlit66[20] = "x31 (%s) = 0x%08x\t\n";
 static char __strlit67[13] = "pc = 0x%08x\n";
 static void machine_Machine_dump_registers(machine_Machine_ptr self);
-#ifdef __GNUC__
-#define nelua_likely(x) __builtin_expect(x, 1)
-#define nelua_unlikely(x) __builtin_expect(x, 0)
-#else
-#define nelua_likely(x) (x)
-#define nelua_unlikely(x) (x)
-#endif
-static int32_t nelua_shl_int32(int32_t a, int32_t b);
-static int32_t nelua_shr_int32(int32_t a, int32_t b);
 static inline int64_t machine_sext__1(uint32_t val, nlniltype n);
 static inline int64_t machine_sext__2(uint32_t val, nlniltype n);
 static inline int64_t machine_sext__3(uint32_t val, nlniltype n);
@@ -188,6 +177,13 @@ static char __strlit69[20] = "illegal system call";
 static uint64_t machine_Machine_handle_syscall(machine_Machine_ptr self, uint64_t code);
 #define NLNIL (nlniltype){}
 static char __strlit70[25] = "illegal load instruction";
+#ifdef __GNUC__
+#define nelua_likely(x) __builtin_expect(x, 1)
+#define nelua_unlikely(x) __builtin_expect(x, 0)
+#else
+#define nelua_likely(x) (x)
+#define nelua_unlikely(x) (x)
+#endif
 static char __strlit71[26] = "illegal store instruction";
 static int64_t nelua_shl_int64(int64_t a, int64_t b);
 static int64_t nelua_shr_int64(int64_t a, int64_t b);
@@ -200,10 +196,10 @@ static char __strlit76[30] = "illegal op-imm-32 instruction";
 static char __strlit77[26] = "illegal op-32 instruction";
 static char __strlit78[27] = "illegal branch instruction";
 static char __strlit79[27] = "illegal system instruction";
-static char __strlit80[15] = "illegal opcode";
+static char __strlit80[20] = "illegal instruction";
 static inline void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst);
 #define nelua_noinline __attribute__((noinline))
-static nelua_noinline void machine_Machine_run(machine_Machine_ptr self);
+static nelua_noinline __attribute__((optimize("no-crossjumping,no-gcse"))) void machine_Machine_run(machine_Machine_ptr self);
 typedef char** nlcstring_ptr;
 static void __nelua_print3(nlstringview a1);
 static void nelua_stdout_write_stringview(nlstringview s);
@@ -220,7 +216,7 @@ void nelua_panic_stringview(nlstringview s) {
   abort();
 }
 void machine_Machine_loadfile(machine_Machine_ptr self, nlstringview filename) {
-  FILE_ptr fp = fopen(((char*)(filename.data)), __strlit33);
+  void* fp = fopen(((char*)(filename.data)), __strlit33);
   if(!fp) {
     nelua_panic_stringview(((nlstringview){__strlit34, 19}));
   }
@@ -310,27 +306,17 @@ void machine_Machine_dump_registers(machine_Machine_ptr self) {
   printf(__strlit66, machine_REGNAMES.data[31], (*(nluint64_arr32*)self->regs).data[31]);
   printf(__strlit67, self->pc);
 }
-inline int32_t nelua_shl_int32(int32_t a, int32_t b) {
-  if(nelua_unlikely(b >= 32)) return 0;
-  else if(nelua_unlikely(b < 0)) return nelua_shr_int32(a, -b);
-  else return (uint32_t)a << b;
-}
-inline int32_t nelua_shr_int32(int32_t a, int32_t b) {
-  if(nelua_unlikely(b >= 32)) return 0;
-  else if(nelua_unlikely(b < 0)) return nelua_shl_int32(a, -b);
-  else return (uint32_t)a >> b;
-}
 int64_t machine_sext__1(uint32_t val, nlniltype n) {
-  return (int64_t)((nelua_shl_int32((int32_t)val, 20)) >> 20);
+  return (int64_t)(((int32_t)val << 20) >> 20);
 }
 int64_t machine_sext__2(uint32_t val, nlniltype n) {
-  return (int64_t)((nelua_shl_int32((int32_t)val, 0)) >> 0);
+  return (int64_t)(((int32_t)val << 0) >> 0);
 }
 int64_t machine_sext__3(uint32_t val, nlniltype n) {
-  return (int64_t)((nelua_shl_int32((int32_t)val, 11)) >> 11);
+  return (int64_t)(((int32_t)val << 11) >> 11);
 }
 int64_t machine_sext__4(uint32_t val, nlniltype n) {
-  return (int64_t)((nelua_shl_int32((int32_t)val, 19)) >> 19);
+  return (int64_t)(((int32_t)val << 19) >> 19);
 }
 uint32_t machine_rbits__1(uint32_t inst, nlniltype bend, nlniltype bbeg) {
   return ((inst >> 0U) & 127U);
@@ -437,19 +423,20 @@ uint64_t machine_Machine_handle_syscall(machine_Machine_ptr self, uint64_t code)
   return 0U;
 }
 inline int64_t nelua_shl_int64(int64_t a, int64_t b) {
-  if(nelua_unlikely(b >= 64)) return 0;
-  else if(nelua_unlikely(b < 0)) return nelua_shr_int64(a, -b);
-  else return (uint64_t)a << b;
+  if(nelua_likely(b >= 0 && b < 64)) return (uint64_t)a << b;
+  else if(nelua_unlikely(b < 0 && b > -64)) return (uint64_t)a >> -b;
+  else return 0;
 }
 inline int64_t nelua_shr_int64(int64_t a, int64_t b) {
-  if(nelua_unlikely(b >= 64)) return 0;
-  else if(nelua_unlikely(b < 0)) return nelua_shl_int64(a, -b);
-  else return (uint64_t)a >> b;
+  if(nelua_likely(b >= 0 && b < 64)) return (uint64_t)a >> b;
+  else if(nelua_unlikely(b < 0 && b > -64)) return (uint64_t)a << -b;
+  else return 0;
 }
 inline int64_t nelua_asr_int64(int64_t a, int64_t b) {
-  if(nelua_unlikely(b >= 64)) return a < 0 ? -1 : 0;
-  else if(nelua_unlikely(b < 0)) return nelua_shl_int64(a, -b);
-  else return a >> b;
+  if(nelua_likely(b >= 0 && b < 64)) return a >> b;
+  else if(nelua_unlikely(b >= 64)) return a < 0 ? -1 : 0;
+  else if(nelua_unlikely(b < 0 && b > -64)) return a << -b;
+  else return 0;
 }
 void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
   uint32_t opcode = machine_rbits__1(inst, NLNIL, NLNIL);
@@ -566,12 +553,12 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
         }
         case 0x5: {
           uint32_t funct6 = machine_rbits__7(inst, NLNIL, NLNIL);
-          switch(funct6) {
+          switch((funct6 >> 4)) {
             case 0x0: {
               val = (nelua_shr_int64(val, shamt));
               break;
             }
-            case 0x10: {
+            case 0x1: {
               val = (nelua_asr_int64(val, shamt));
               break;
             }
@@ -603,16 +590,15 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
     case 0x33: {
       uint32_t funct3 = machine_rbits__5(inst, NLNIL, NLNIL);
       uint32_t funct7 = machine_rbits__8(inst, NLNIL, NLNIL);
-      uint32_t funct10 = ((funct7 << 3) | funct3);
       int64_t val1 = (int64_t)(*(nluint64_arr32*)self->regs).data[rs1];
       int64_t val2 = (int64_t)(*(nluint64_arr32*)self->regs).data[rs2];
       int64_t val;
-      switch(funct10) {
+      switch(((funct7 >> 5) | funct3)) {
         case 0x0: {
           val = (val1 + val2);
           break;
         }
-        case 0x100: {
+        case 0x8: {
           val = (val1 - val2);
           break;
         }
@@ -644,7 +630,7 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
           val = (nelua_shr_int64(val1, (val2 & 0x1f)));
           break;
         }
-        case 0x105: {
+        case 0xd: {
           val = (nelua_asr_int64(val1, (val2 & 0x1f)));
           break;
         }
@@ -682,12 +668,12 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
         case 0x5: {
           uint32_t shamt = rs2;
           uint32_t funct7 = machine_rbits__8(inst, NLNIL, NLNIL);
-          switch(funct7) {
+          switch((funct7 >> 5)) {
             case 0x0: {
               val = (int64_t)(int32_t)(nelua_shr_int64(val, shamt));
               break;
             }
-            case 0x20: {
+            case 0x1: {
               val = (int64_t)(int32_t)(nelua_asr_int64(val, shamt));
               break;
             }
@@ -711,16 +697,15 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
     case 0x3b: {
       uint32_t funct3 = machine_rbits__5(inst, NLNIL, NLNIL);
       uint32_t funct7 = machine_rbits__8(inst, NLNIL, NLNIL);
-      uint32_t funct10 = ((funct7 << 3) | funct3);
       int64_t val1 = (int64_t)(*(nluint64_arr32*)self->regs).data[rs1];
       int64_t val2 = (int64_t)(*(nluint64_arr32*)self->regs).data[rs2];
       int64_t val;
-      switch(funct10) {
+      switch(((funct7 >> 5) | funct3)) {
         case 0x0: {
           val = (int64_t)(int32_t)(val1 + val2);
           break;
         }
-        case 0x100: {
+        case 0x8: {
           val = (int64_t)(int32_t)(val1 - val2);
           break;
         }
@@ -732,7 +717,7 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
           val = (int64_t)(int32_t)(nelua_shr_int64(val1, (val2 & 0x1f)));
           break;
         }
-        case 0x105: {
+        case 0xd: {
           val = (int64_t)(int32_t)(nelua_asr_int64(val1, (val2 & 0x1f)));
           break;
         }
@@ -845,7 +830,7 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
       break;
     }
     default: {
-      nelua_panic_stringview(((nlstringview){__strlit80, 14}));
+      nelua_panic_stringview(((nlstringview){__strlit80, 19}));
       break;
     }
   }
