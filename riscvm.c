@@ -166,9 +166,10 @@ static int64_t nelua_shr_int64(int64_t a, int64_t b);
 static int64_t nelua_asr_int64(int64_t a, int64_t b);
 static char __strlit72[33] = "illegal op-imm shift instruction";
 static char __strlit73[27] = "illegal op-imm instruction";
-static char __strlit74[23] = "illegal op instruction";
-static char __strlit75[36] = "illegal op-imm-32 shift instruction";
-static char __strlit76[30] = "illegal op-imm-32 instruction";
+static char __strlit74[36] = "illegal op-imm-32 shift instruction";
+static char __strlit75[30] = "illegal op-imm-32 instruction";
+static __int128 nelua_shr_int128(__int128 a, __int128 b);
+static char __strlit76[23] = "illegal op instruction";
 static char __strlit77[26] = "illegal op-32 instruction";
 static char __strlit78[27] = "illegal branch instruction";
 static char __strlit79[27] = "illegal system instruction";
@@ -342,6 +343,11 @@ inline int64_t nelua_asr_int64(int64_t a, int64_t b) {
   else if(nelua_unlikely(b < 0 && b > -64)) return a << -b;
   else return 0;
 }
+inline __int128 nelua_shr_int128(__int128 a, __int128 b) {
+  if(nelua_likely(b >= 0 && b < 128)) return (unsigned __int128)a >> b;
+  else if(nelua_unlikely(b < 0 && b > -128)) return (unsigned __int128)a << -b;
+  else return 0;
+}
 void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
   uint32_t opcode = ((inst >> 0) & 127);
   uint32_t rd = ((inst >> 7) & 31);
@@ -491,18 +497,60 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
       }
       break;
     }
+    case 0x1b: {
+      uint32_t funct3 = ((inst >> 12) & 7);
+      int64_t imm = (int64_t)(((int32_t)((inst >> 20) & 4095) << 20) >> 20);
+      int64_t val = (int64_t)(*(nluint64_arr32*)self->regs).data[rs1];
+      switch(funct3) {
+        case 0x0: {
+          val = (int64_t)(int32_t)(val + imm);
+          break;
+        }
+        case 0x1: {
+          val = (int64_t)(int32_t)(nelua_shl_int64(val, imm));
+          break;
+        }
+        case 0x5: {
+          uint32_t shamt = rs2;
+          uint32_t funct7 = ((inst >> 25) & 127);
+          switch((funct7 >> 5)) {
+            case 0x0: {
+              val = (int64_t)(int32_t)(nelua_shr_int64(val, shamt));
+              break;
+            }
+            case 0x1: {
+              val = (int64_t)(int32_t)(nelua_asr_int64(val, shamt));
+              break;
+            }
+            default: {
+              nelua_panic_stringview(((nlstringview){__strlit74, 35}));
+              break;
+            }
+          }
+          break;
+        }
+        default: {
+          nelua_panic_stringview(((nlstringview){__strlit75, 29}));
+          break;
+        }
+      }
+      if(nelua_likely((rd != 0U))) {
+        (*(nluint64_arr32*)self->regs).data[rd] = (uint64_t)val;
+      }
+      break;
+    }
     case 0x33: {
       uint32_t funct3 = ((inst >> 12) & 7);
       uint32_t funct7 = ((inst >> 25) & 127);
       int64_t val1 = (int64_t)(*(nluint64_arr32*)self->regs).data[rs1];
       int64_t val2 = (int64_t)(*(nluint64_arr32*)self->regs).data[rs2];
       int64_t val;
-      switch(((funct7 >> 5) | funct3)) {
+      switch(((funct7 << 3) | funct3)) {
         case 0x0: {
           val = (val1 + val2);
           break;
         }
-        case 0x8: {
+        case 0x100: {
           val = (val1 - val2);
           break;
         }
@@ -534,7 +582,7 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
           val = (nelua_shr_int64(val1, (val2 & 0x1f)));
           break;
         }
-        case 0xd: {
+        case 0x105: {
           val = (nelua_asr_int64(val1, (val2 & 0x1f)));
           break;
         }
@@ -546,50 +594,68 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
           val = (val1 & val2);
           break;
         }
-        default: {
-          nelua_panic_stringview(((nlstringview){__strlit74, 22}));
+        case 0x8: {
+          val = (val1 * val2);
           break;
         }
-      }
-      if(nelua_likely((rd != 0U))) {
-        (*(nluint64_arr32*)self->regs).data[rd] = (uint64_t)val;
-      }
-      break;
-    }
-    case 0x1b: {
-      uint32_t funct3 = ((inst >> 12) & 7);
-      int64_t imm = (int64_t)(((int32_t)((inst >> 20) & 4095) << 20) >> 20);
-      int64_t val = (int64_t)(*(nluint64_arr32*)self->regs).data[rs1];
-      switch(funct3) {
-        case 0x0: {
-          val = (int64_t)(int32_t)(val + imm);
+        case 0x9: {
+          val = (int64_t)(uint64_t)(nelua_shr_int128(((__int128)val1 * (__int128)val2), 64));
           break;
         }
-        case 0x1: {
-          val = (int64_t)(int32_t)(nelua_shl_int64(val, imm));
+        case 0xa: {
+          val = (int64_t)(uint64_t)(nelua_shr_int128(((__int128)val1 * (__int128)(uint64_t)val2), 64));
           break;
         }
-        case 0x5: {
-          uint32_t shamt = rs2;
-          uint32_t funct7 = ((inst >> 25) & 127);
-          switch((funct7 >> 5)) {
-            case 0x0: {
-              val = (int64_t)(int32_t)(nelua_shr_int64(val, shamt));
-              break;
-            }
-            case 0x1: {
-              val = (int64_t)(int32_t)(nelua_asr_int64(val, shamt));
-              break;
-            }
-            default: {
-              nelua_panic_stringview(((nlstringview){__strlit75, 35}));
-              break;
-            }
+        case 0xb: {
+          val = (int64_t)(uint64_t)(nelua_shr_int128(((__int128)(uint64_t)val1 * (__int128)(uint64_t)val2), 64));
+          break;
+        }
+        case 0xc: {
+          int64_t dividend = val1;
+          int64_t divisor = val2;
+          if(nelua_unlikely(((dividend == -9223372036854775807-1) && (divisor == -1)))) {
+            val = -9223372036854775807-1;
+          } else if(nelua_unlikely((divisor == 0))) {
+            val = -1;
+          } else {
+            val = (dividend / divisor);
+          }
+          break;
+        }
+        case 0xd: {
+          uint64_t dividend = (uint64_t)val1;
+          uint64_t divisor = (uint64_t)val2;
+          if(nelua_unlikely((divisor == 0U))) {
+            val = -1;
+          } else {
+            val = (int64_t)(dividend / divisor);
+          }
+          break;
+        }
+        case 0xe: {
+          int64_t dividend = val1;
+          int64_t divisor = val2;
+          if(nelua_unlikely(((dividend == -9223372036854775807-1) && (divisor == -1)))) {
+            val = 0;
+          } else if(nelua_unlikely((divisor == 0))) {
+            val = dividend;
+          } else {
+            val = (dividend % divisor);
+          }
+          break;
+        }
+        case 0xf: {
+          uint64_t dividend = (uint64_t)val1;
+          uint64_t divisor = (uint64_t)val2;
+          if(nelua_unlikely((divisor == 0U))) {
+            val = (int64_t)dividend;
+          } else {
+            val = (int64_t)(dividend % divisor);
           }
           break;
         }
         default: {
-          nelua_panic_stringview(((nlstringview){__strlit76, 29}));
+          nelua_panic_stringview(((nlstringview){__strlit76, 22}));
           break;
         }
       }
@@ -604,12 +670,12 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
       int64_t val1 = (int64_t)(*(nluint64_arr32*)self->regs).data[rs1];
       int64_t val2 = (int64_t)(*(nluint64_arr32*)self->regs).data[rs2];
       int64_t val;
-      switch(((funct7 >> 5) | funct3)) {
+      switch(((funct7 << 3) | funct3)) {
         case 0x0: {
           val = (int64_t)(int32_t)(val1 + val2);
           break;
         }
-        case 0x8: {
+        case 0x100: {
           val = (int64_t)(int32_t)(val1 - val2);
           break;
         }
@@ -621,8 +687,56 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
           val = (int64_t)(int32_t)(nelua_shr_int64(val1, (val2 & 0x1f)));
           break;
         }
-        case 0xd: {
+        case 0x105: {
           val = (int64_t)(int32_t)(nelua_asr_int64(val1, (val2 & 0x1f)));
+          break;
+        }
+        case 0x8: {
+          val = (int64_t)((int32_t)val1 * (int32_t)val2);
+          break;
+        }
+        case 0xc: {
+          int32_t dividend = (int32_t)val1;
+          int32_t divisor = (int32_t)val2;
+          if(nelua_unlikely(((dividend == -2147483647-1) && (divisor == -1)))) {
+            val = -2147483648;
+          } else if(nelua_unlikely((divisor == 0))) {
+            val = -1;
+          } else {
+            val = (int64_t)(dividend / divisor);
+          }
+          break;
+        }
+        case 0xd: {
+          uint32_t dividend = (uint32_t)val1;
+          uint32_t divisor = (uint32_t)val2;
+          if(nelua_unlikely((divisor == 0U))) {
+            val = -1;
+          } else {
+            val = (int64_t)(int32_t)(dividend / divisor);
+          }
+          break;
+        }
+        case 0xe: {
+          int32_t dividend = (int32_t)val1;
+          int32_t divisor = (int32_t)val2;
+          if(nelua_unlikely(((dividend == -2147483647-1) && (divisor == -1)))) {
+            val = 0;
+          } else if(nelua_unlikely((divisor == 0))) {
+            val = (int64_t)dividend;
+          } else {
+            val = (int64_t)(dividend % divisor);
+          }
+          break;
+        }
+        case 0xf: {
+          uint32_t dividend = (uint32_t)val1;
+          uint32_t divisor = (uint32_t)val2;
+          if(nelua_unlikely((divisor == 0U))) {
+            val = (int64_t)(int32_t)dividend;
+          } else {
+            val = (int64_t)(int32_t)(dividend % divisor);
+          }
           break;
         }
         default: {

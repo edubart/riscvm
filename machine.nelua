@@ -249,39 +249,6 @@ function Machine:execute(inst: uint32) <inline>
     if likely(rd ~= 0) then
       self.regs[rd] = (@uint64)(val)
     end
-  case 0b0110011 then -- op
-    local funct3 = #[rbits(inst, 14, 12)]#
-    local funct7 = #[rbits(inst, 31, 25)]#
-    local val1: int64 = (@int64)(self.regs[rs1])
-    local val2: int64 = (@int64)(self.regs[rs2])
-    local val: int64 <noinit>
-    switch (funct7 >> 5) | funct3 do
-    case 0b00000 then ## debug_inst('add', {rd, rs1, rs2})
-      val = val1 + val2
-    case 0b01000 then ## debug_inst('sub', {rd, rs1, rs2})
-      val = val1 - val2
-    case 0b00001 then ## debug_inst('sll', {rd, rs1, rs2})
-      val = val1 << (val2 & 0b11111)
-    case 0b00010 then ## debug_inst('slt', {rd, rs1, rs2})
-      if val1 < val2 then val = 1 else val = 0 end
-    case 0b00011 then ## debug_inst('sltu', {rd, rs1, rs2})
-      if (@uint64)(val1) < (@uint64)(val2) then val = 1 else val = 0 end
-    case 0b00100 then ## debug_inst('xor', {rd, rs1, rs2})
-      val = val1 ~ val2
-    case 0b00101 then ## debug_inst('srl', {rd, rs1, rs2})
-      val = val1 >> (val2 & 0b11111)
-    case 0b01101 then ## debug_inst('sra', {rd, rs1, rs2})
-      val = val1 >>> (val2 & 0b11111)
-    case 0b00110 then ## debug_inst('or', {rd, rs1, rs2})
-      val = val1 | val2
-    case 0b00111 then ## debug_inst('and', {rd, rs1, rs2})
-      val = val1 & val2
-    else
-      error('illegal op instruction')
-    end
-    if likely(rd ~= 0) then
-      self.regs[rd] = (@uint64)(val)
-    end
   case 0b0011011 then -- op-imm-32
     local funct3 = #[rbits(inst, 14, 12)]#
     local imm = #[sext(rimm(inst, 20, 11, 0), 12)]#
@@ -308,23 +275,132 @@ function Machine:execute(inst: uint32) <inline>
     if likely(rd ~= 0) then
       self.regs[rd] = (@uint64)(val)
     end
+  case 0b0110011 then -- op
+    local funct3 = #[rbits(inst, 14, 12)]#
+    local funct7 = #[rbits(inst, 31, 25)]#
+    local val1: int64 = (@int64)(self.regs[rs1])
+    local val2: int64 = (@int64)(self.regs[rs2])
+    local val: int64 <noinit>
+    switch (funct7 << 3) | funct3 do
+    case 0b0000000000 then ## debug_inst('add', {rd, rs1, rs2})
+      val = val1 + val2
+    case 0b0100000000 then ## debug_inst('sub', {rd, rs1, rs2})
+      val = val1 - val2
+    case 0b0000000001 then ## debug_inst('sll', {rd, rs1, rs2})
+      val = val1 << (val2 & 0b11111)
+    case 0b0000000010 then ## debug_inst('slt', {rd, rs1, rs2})
+      if val1 < val2 then val = 1 else val = 0 end
+    case 0b0000000011 then ## debug_inst('sltu', {rd, rs1, rs2})
+      if (@uint64)(val1) < (@uint64)(val2) then val = 1 else val = 0 end
+    case 0b0000000100 then ## debug_inst('xor', {rd, rs1, rs2})
+      val = val1 ~ val2
+    case 0b0000000101 then ## debug_inst('srl', {rd, rs1, rs2})
+      val = val1 >> (val2 & 0b11111)
+    case 0b0100000101 then ## debug_inst('sra', {rd, rs1, rs2})
+      val = val1 >>> (val2 & 0b11111)
+    case 0b0000000110 then ## debug_inst('or', {rd, rs1, rs2})
+      val = val1 | val2
+    case 0b0000000111 then ## debug_inst('and', {rd, rs1, rs2})
+      val = val1 & val2
+    -- M extension
+    case 0b0000001000 then ## debug_inst('mul', {rd, rs1, rs2})
+      val = val1 * val2
+    case 0b0000001001 then ## debug_inst('mulh', {rd, rs1, rs2})
+      val = (@int64)((@uint64)(((@int128)(val1) * (@int128)(val2)) >> 64))
+    case 0b0000001010 then ## debug_inst('mulhsu', {rd, rs1, rs2})
+      val = (@int64)((@uint64)(((@int128)(val1) * (@int128)((@uint64)(val2))) >> 64))
+    case 0b0000001011 then ## debug_inst('mulhu', {rd, rs1, rs2})
+      val = (@int64)((@uint64)(((@int128)((@uint64)(val1)) * (@int128)((@uint64)(val2))) >> 64))
+    case 0b0000001100 then ## debug_inst('div', {rd, rs1, rs2})
+      local dividend, divisor = val1, val2
+      if unlikely(dividend == (@int64)(0x8000000000000000) and divisor == -1) then -- overflow
+        val = (@int64)(0x8000000000000000)
+      elseif unlikely(divisor == 0) then -- division by zero
+        val = -1
+      else
+        val = dividend /// divisor
+      end
+    case 0b0000001101 then ## debug_inst('divu', {rd, rs1, rs2})
+      local dividend, divisor = (@uint64)(val1), (@uint64)(val2)
+      if unlikely(divisor == 0) then -- division by zero
+        val = (@int64)(-1)
+      else
+        val = (@int64)(dividend /// divisor)
+      end
+    case 0b0000001110 then ## debug_inst('rem', {rd, rs1, rs2})
+      local dividend, divisor = val1, val2
+      if unlikely(dividend == (@int64)(0x8000000000000000) and divisor == -1) then -- overflow
+        val = 0
+      elseif unlikely(divisor == 0) then -- division by zero
+        val = dividend
+      else
+        val = dividend %%% divisor
+      end
+    case 0b0000001111 then ## debug_inst('remu', {rd, rs1, rs2})
+      local dividend, divisor = (@uint64)(val1), (@uint64)(val2)
+      if unlikely(divisor == 0) then -- division by zero
+        val = (@int64)(dividend)
+      else
+        val = (@int64)(dividend %%% divisor)
+      end
+    else
+      error('illegal op instruction')
+    end
+    if likely(rd ~= 0) then
+      self.regs[rd] = (@uint64)(val)
+    end
   case 0b0111011 then -- op-32
     local funct3 = #[rbits(inst, 14, 12)]#
     local funct7 = #[rbits(inst, 31, 25)]#
     local val1: int64 = (@int64)(self.regs[rs1])
     local val2: int64 = (@int64)(self.regs[rs2])
     local val: int64 <noinit>
-    switch (funct7 >> 5) | funct3 do
-    case 0b00000 then ## debug_inst('addw', {rd, rs1, rs2})
+    switch (funct7 << 3) | funct3 do
+    case 0b0000000000 then ## debug_inst('addw', {rd, rs1, rs2})
       val = (@int32)(val1 + val2)
-    case 0b01000 then ## debug_inst('subw', {rd, rs1, rs2})
+    case 0b0100000000 then ## debug_inst('subw', {rd, rs1, rs2})
       val = (@int32)(val1 - val2)
-    case 0b00001 then ## debug_inst('sllw', {rd, rs1, rs2})
+    case 0b0000000001 then ## debug_inst('sllw', {rd, rs1, rs2})
       val = (@int32)(val1 << (val2 & 0b11111))
-    case 0b00101 then ## debug_inst('srlw', {rd, rs1, rs2})
+    case 0b0000000101 then ## debug_inst('srlw', {rd, rs1, rs2})
       val = (@int32)(val1 >> (val2 & 0b11111))
-    case 0b01101 then ## debug_inst('sraw', {rd, rs1, rs2})
+    case 0b0100000101 then ## debug_inst('sraw', {rd, rs1, rs2})
       val = (@int32)(val1 >>> (val2 & 0b11111))
+    -- M extension
+    case 0b0000001000 then ## debug_inst('mulw', {rd, rs1, rs2})
+      val = (@int32)((@int32)(val1) * (@int32)(val2))
+    case 0b0000001100 then ## debug_inst('divw', {rd, rs1, rs2})
+      local dividend, divisor = (@int32)(val1), (@int32)(val2)
+      if unlikely(dividend == (@int32)(0x80000000) and divisor == -1) then -- overflow
+        val = (@int32)(0x80000000)
+      elseif unlikely(divisor == 0) then -- division by zero
+        val = (@int32)(-1)
+      else
+        val = dividend /// divisor
+      end
+    case 0b0000001101 then ## debug_inst('divuw', {rd, rs1, rs2})
+      local dividend, divisor = (@uint32)(val1), (@uint32)(val2)
+      if unlikely(divisor == 0) then -- division by zero
+        val = (@int32)(-1)
+      else
+        val = (@int32)(dividend /// divisor)
+      end
+    case 0b0000001110 then ## debug_inst('remw', {rd, rs1, rs2})
+      local dividend, divisor = (@int32)(val1), (@int32)(val2)
+      if unlikely(dividend == (@int32)(0x80000000) and divisor == -1) then -- overflow
+        val = 0
+      elseif unlikely(divisor == 0) then -- division by zero
+        val = dividend
+      else
+        val = dividend %%% divisor
+      end
+    case 0b0000001111 then ## debug_inst('remuw', {rd, rs1, rs2})
+      local dividend, divisor = (@uint32)(val1), (@uint32)(val2)
+      if unlikely(divisor == 0) then -- division by zero
+        val = (@int32)(dividend)
+      else
+        val = (@int32)(dividend %%% divisor)
+      end
     else
       error('illegal op-32 instruction')
     end
