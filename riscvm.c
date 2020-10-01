@@ -30,9 +30,7 @@ nelua_static_assert(sizeof(void*) == 8, "Nelua and C disagree on architecture si
 #include <stdio.h>
 #include <string.h>
 typedef struct nlstringview nlstringview;
-typedef struct {uint8_t data[0];} nluint8_arr0;
-nelua_static_assert(sizeof(nluint8_arr0) == 0, "Nelua and C disagree on type size");
-typedef nluint8_arr0* nluint8_arr0_ptr;
+typedef uint8_t* nluint8_arr0_ptr;
 struct nlstringview {
   nluint8_arr0_ptr data;
   uintptr_t size;
@@ -72,7 +70,7 @@ static char __strlit29[3] = "t3";
 static char __strlit30[3] = "t4";
 static char __strlit31[3] = "t5";
 static char __strlit32[3] = "t6";
-static nlstringview_arr32 machine_REGNAMES = {{{__strlit1, 4}, {__strlit2, 2}, {__strlit3, 2}, {__strlit4, 2}, {__strlit5, 2}, {__strlit6, 2}, {__strlit7, 2}, {__strlit8, 2}, {__strlit9, 2}, {__strlit10, 2}, {__strlit11, 2}, {__strlit12, 2}, {__strlit13, 2}, {__strlit14, 2}, {__strlit15, 2}, {__strlit16, 2}, {__strlit17, 2}, {__strlit18, 2}, {__strlit19, 2}, {__strlit20, 2}, {__strlit21, 2}, {__strlit22, 2}, {__strlit23, 2}, {__strlit24, 2}, {__strlit25, 2}, {__strlit26, 2}, {__strlit27, 3}, {__strlit28, 3}, {__strlit29, 2}, {__strlit30, 2}, {__strlit31, 2}, {__strlit32, 2}}};
+static nlstringview_arr32 machine_REGNAMES = {{{(uint8_t*)__strlit1, 4}, {(uint8_t*)__strlit2, 2}, {(uint8_t*)__strlit3, 2}, {(uint8_t*)__strlit4, 2}, {(uint8_t*)__strlit5, 2}, {(uint8_t*)__strlit6, 2}, {(uint8_t*)__strlit7, 2}, {(uint8_t*)__strlit8, 2}, {(uint8_t*)__strlit9, 2}, {(uint8_t*)__strlit10, 2}, {(uint8_t*)__strlit11, 2}, {(uint8_t*)__strlit12, 2}, {(uint8_t*)__strlit13, 2}, {(uint8_t*)__strlit14, 2}, {(uint8_t*)__strlit15, 2}, {(uint8_t*)__strlit16, 2}, {(uint8_t*)__strlit17, 2}, {(uint8_t*)__strlit18, 2}, {(uint8_t*)__strlit19, 2}, {(uint8_t*)__strlit20, 2}, {(uint8_t*)__strlit21, 2}, {(uint8_t*)__strlit22, 2}, {(uint8_t*)__strlit23, 2}, {(uint8_t*)__strlit24, 2}, {(uint8_t*)__strlit25, 2}, {(uint8_t*)__strlit26, 2}, {(uint8_t*)__strlit27, 3}, {(uint8_t*)__strlit28, 3}, {(uint8_t*)__strlit29, 2}, {(uint8_t*)__strlit30, 2}, {(uint8_t*)__strlit31, 2}, {(uint8_t*)__strlit32, 2}}};
 typedef struct machine_Machine machine_Machine;
 typedef machine_Machine* machine_Machine_ptr;
 struct machine_Machine {
@@ -88,14 +86,10 @@ static char __strlit33[3] = "rb";
 #define nelua_noreturn __attribute__((noreturn))
 static nelua_noreturn void nelua_panic_stringview(nlstringview s);
 static char __strlit34[20] = "failed to open file";
-typedef struct {uint8_t data[134217728];} nluint8_arr134217728;
-nelua_static_assert(sizeof(nluint8_arr134217728) == 134217728, "Nelua and C disagree on type size");
-typedef struct {uint64_t data[32];} nluint64_arr32;
-nelua_static_assert(sizeof(nluint64_arr32) == 256, "Nelua and C disagree on type size");
 static void machine_Machine_loadfile(machine_Machine_ptr self, nlstringview filename);
 typedef uint32_t* nluint32_ptr;
 static inline uint32_t machine_Machine_fetch(machine_Machine_ptr self);
-typedef struct{} nlniltype;
+typedef struct nlniltype {} nlniltype;
 static inline int8_t machine_Machine_read__1(machine_Machine_ptr self, nlniltype T, uint64_t addr);
 typedef uint16_t* nluint16_ptr;
 static inline int16_t machine_Machine_read__2(machine_Machine_ptr self, nlniltype T, uint64_t addr);
@@ -106,7 +100,6 @@ static inline uint8_t machine_Machine_read__5(machine_Machine_ptr self, nlniltyp
 static inline uint16_t machine_Machine_read__6(machine_Machine_ptr self, nlniltype T, uint64_t addr);
 static inline uint32_t machine_Machine_read__7(machine_Machine_ptr self, nlniltype T, uint64_t addr);
 static inline void* machine_Machine_getptr(machine_Machine_ptr self, uint64_t addr);
-typedef uint8_t* nluint8_ptr;
 static inline void machine_Machine_write__1(machine_Machine_ptr self, uint64_t addr, uint8_t val);
 static inline void machine_Machine_write__2(machine_Machine_ptr self, uint64_t addr, uint16_t val);
 static inline void machine_Machine_write__3(machine_Machine_ptr self, uint64_t addr, uint32_t val);
@@ -184,7 +177,7 @@ static char __strlit81[38] = "please supply a RV64I program to run!";
 static char* riscvm_filename = NULL;
 static machine_Machine riscvm_machine = {0};
 static nlstringview nelua_cstring2stringview(char *s);
-int nelua_main(int nelua_argc, char** nelua_argv);
+static int nelua_main(int nelua_argc, char** nelua_argv);
 /* ------------------------------ DEFINITIONS ------------------------------- */
 void nelua_panic_stringview(nlstringview s) {
   if(s.data && s.size > 0) {
@@ -195,92 +188,88 @@ void nelua_panic_stringview(nlstringview s) {
 void machine_Machine_loadfile(machine_Machine_ptr self, nlstringview filename) {
   void* fp = fopen(((char*)(filename.data)), __strlit33);
   if(!fp) {
-    nelua_panic_stringview(((nlstringview){__strlit34, 19}));
+    nelua_panic_stringview(((nlstringview){(uint8_t*)__strlit34, 19}));
   }
   fseek(fp, 0, SEEK_END);
   long size = ftell(fp);
   fseek(fp, 0, SEEK_SET);
-  fread((void*)(&(*(nluint8_arr134217728*)self->memory).data[4096]), (size_t)size, (size_t)1U, fp);
+  fread((void*)(&self->memory[4096]), (size_t)size, (size_t)1U, fp);
   fclose(fp);
-  (*(nluint64_arr32*)self->regs).data[2] = 134217728U;
+  self->regs[2] = 134217728U;
   self->pc = 4096;
 }
 uint32_t machine_Machine_fetch(machine_Machine_ptr self) {
-  return (*(nluint32_ptr)(&(*(nluint8_arr134217728*)self->memory).data[self->pc]));
+  return (*(nluint32_ptr)(&self->memory[self->pc]));
 }
 int8_t machine_Machine_read__1(machine_Machine_ptr self, nlniltype T, uint64_t addr) {
-  return (int8_t)(*(&(*(nluint8_arr134217728*)self->memory).data[addr]));
+  return (int8_t)(*(&self->memory[addr]));
 }
 int16_t machine_Machine_read__2(machine_Machine_ptr self, nlniltype T, uint64_t addr) {
-  return (int16_t)(*(nluint16_ptr)(&(*(nluint8_arr134217728*)self->memory).data[addr]));
+  return (int16_t)(*(nluint16_ptr)(&self->memory[addr]));
 }
 int32_t machine_Machine_read__3(machine_Machine_ptr self, nlniltype T, uint64_t addr) {
-  return (int32_t)(*(nluint32_ptr)(&(*(nluint8_arr134217728*)self->memory).data[addr]));
+  return (int32_t)(*(nluint32_ptr)(&self->memory[addr]));
 }
 int64_t machine_Machine_read__4(machine_Machine_ptr self, nlniltype T, uint64_t addr) {
-  return (int64_t)(*(nluint64_ptr)(&(*(nluint8_arr134217728*)self->memory).data[addr]));
+  return (int64_t)(*(nluint64_ptr)(&self->memory[addr]));
 }
 uint8_t machine_Machine_read__5(machine_Machine_ptr self, nlniltype T, uint64_t addr) {
-  return (*(&(*(nluint8_arr134217728*)self->memory).data[addr]));
+  return (*(&self->memory[addr]));
 }
 uint16_t machine_Machine_read__6(machine_Machine_ptr self, nlniltype T, uint64_t addr) {
-  return (*(nluint16_ptr)(&(*(nluint8_arr134217728*)self->memory).data[addr]));
+  return (*(nluint16_ptr)(&self->memory[addr]));
 }
 uint32_t machine_Machine_read__7(machine_Machine_ptr self, nlniltype T, uint64_t addr) {
-  return (*(nluint32_ptr)(&(*(nluint8_arr134217728*)self->memory).data[addr]));
+  return (*(nluint32_ptr)(&self->memory[addr]));
 }
 void* machine_Machine_getptr(machine_Machine_ptr self, uint64_t addr) {
-  return (void*)(&(*(nluint8_arr134217728*)self->memory).data[addr]);
+  return (void*)(&self->memory[addr]);
 }
 void machine_Machine_write__1(machine_Machine_ptr self, uint64_t addr, uint8_t val) {
-  nluint8_ptr p = (&(*(nluint8_arr134217728*)self->memory).data[addr]);
-  (*p) = val;
+  (*(&self->memory[addr])) = val;
 }
 void machine_Machine_write__2(machine_Machine_ptr self, uint64_t addr, uint16_t val) {
-  nluint16_ptr p = (nluint16_ptr)(&(*(nluint8_arr134217728*)self->memory).data[addr]);
-  (*p) = val;
+  (*(nluint16_ptr)(&self->memory[addr])) = val;
 }
 void machine_Machine_write__3(machine_Machine_ptr self, uint64_t addr, uint32_t val) {
-  nluint32_ptr p = (nluint32_ptr)(&(*(nluint8_arr134217728*)self->memory).data[addr]);
-  (*p) = val;
+  (*(nluint32_ptr)(&self->memory[addr])) = val;
 }
 void machine_Machine_write__4(machine_Machine_ptr self, uint64_t addr, uint64_t val) {
-  nluint64_ptr p = (nluint64_ptr)(&(*(nluint8_arr134217728*)self->memory).data[addr]);
-  (*p) = val;
+  (*(nluint64_ptr)(&self->memory[addr])) = val;
 }
 void machine_Machine_dump_registers(machine_Machine_ptr self) {
-  printf(__strlit35, machine_REGNAMES.data[0], (*(nluint64_arr32*)self->regs).data[0]);
-  printf(__strlit36, machine_REGNAMES.data[1], (*(nluint64_arr32*)self->regs).data[1]);
-  printf(__strlit37, machine_REGNAMES.data[2], (*(nluint64_arr32*)self->regs).data[2]);
-  printf(__strlit38, machine_REGNAMES.data[3], (*(nluint64_arr32*)self->regs).data[3]);
-  printf(__strlit39, machine_REGNAMES.data[4], (*(nluint64_arr32*)self->regs).data[4]);
-  printf(__strlit40, machine_REGNAMES.data[5], (*(nluint64_arr32*)self->regs).data[5]);
-  printf(__strlit41, machine_REGNAMES.data[6], (*(nluint64_arr32*)self->regs).data[6]);
-  printf(__strlit42, machine_REGNAMES.data[7], (*(nluint64_arr32*)self->regs).data[7]);
-  printf(__strlit43, machine_REGNAMES.data[8], (*(nluint64_arr32*)self->regs).data[8]);
-  printf(__strlit44, machine_REGNAMES.data[9], (*(nluint64_arr32*)self->regs).data[9]);
-  printf(__strlit45, machine_REGNAMES.data[10], (*(nluint64_arr32*)self->regs).data[10]);
-  printf(__strlit46, machine_REGNAMES.data[11], (*(nluint64_arr32*)self->regs).data[11]);
-  printf(__strlit47, machine_REGNAMES.data[12], (*(nluint64_arr32*)self->regs).data[12]);
-  printf(__strlit48, machine_REGNAMES.data[13], (*(nluint64_arr32*)self->regs).data[13]);
-  printf(__strlit49, machine_REGNAMES.data[14], (*(nluint64_arr32*)self->regs).data[14]);
-  printf(__strlit50, machine_REGNAMES.data[15], (*(nluint64_arr32*)self->regs).data[15]);
-  printf(__strlit51, machine_REGNAMES.data[16], (*(nluint64_arr32*)self->regs).data[16]);
-  printf(__strlit52, machine_REGNAMES.data[17], (*(nluint64_arr32*)self->regs).data[17]);
-  printf(__strlit53, machine_REGNAMES.data[18], (*(nluint64_arr32*)self->regs).data[18]);
-  printf(__strlit54, machine_REGNAMES.data[19], (*(nluint64_arr32*)self->regs).data[19]);
-  printf(__strlit55, machine_REGNAMES.data[20], (*(nluint64_arr32*)self->regs).data[20]);
-  printf(__strlit56, machine_REGNAMES.data[21], (*(nluint64_arr32*)self->regs).data[21]);
-  printf(__strlit57, machine_REGNAMES.data[22], (*(nluint64_arr32*)self->regs).data[22]);
-  printf(__strlit58, machine_REGNAMES.data[23], (*(nluint64_arr32*)self->regs).data[23]);
-  printf(__strlit59, machine_REGNAMES.data[24], (*(nluint64_arr32*)self->regs).data[24]);
-  printf(__strlit60, machine_REGNAMES.data[25], (*(nluint64_arr32*)self->regs).data[25]);
-  printf(__strlit61, machine_REGNAMES.data[26], (*(nluint64_arr32*)self->regs).data[26]);
-  printf(__strlit62, machine_REGNAMES.data[27], (*(nluint64_arr32*)self->regs).data[27]);
-  printf(__strlit63, machine_REGNAMES.data[28], (*(nluint64_arr32*)self->regs).data[28]);
-  printf(__strlit64, machine_REGNAMES.data[29], (*(nluint64_arr32*)self->regs).data[29]);
-  printf(__strlit65, machine_REGNAMES.data[30], (*(nluint64_arr32*)self->regs).data[30]);
-  printf(__strlit66, machine_REGNAMES.data[31], (*(nluint64_arr32*)self->regs).data[31]);
+  printf(__strlit35, machine_REGNAMES.data[0], self->regs[0]);
+  printf(__strlit36, machine_REGNAMES.data[1], self->regs[1]);
+  printf(__strlit37, machine_REGNAMES.data[2], self->regs[2]);
+  printf(__strlit38, machine_REGNAMES.data[3], self->regs[3]);
+  printf(__strlit39, machine_REGNAMES.data[4], self->regs[4]);
+  printf(__strlit40, machine_REGNAMES.data[5], self->regs[5]);
+  printf(__strlit41, machine_REGNAMES.data[6], self->regs[6]);
+  printf(__strlit42, machine_REGNAMES.data[7], self->regs[7]);
+  printf(__strlit43, machine_REGNAMES.data[8], self->regs[8]);
+  printf(__strlit44, machine_REGNAMES.data[9], self->regs[9]);
+  printf(__strlit45, machine_REGNAMES.data[10], self->regs[10]);
+  printf(__strlit46, machine_REGNAMES.data[11], self->regs[11]);
+  printf(__strlit47, machine_REGNAMES.data[12], self->regs[12]);
+  printf(__strlit48, machine_REGNAMES.data[13], self->regs[13]);
+  printf(__strlit49, machine_REGNAMES.data[14], self->regs[14]);
+  printf(__strlit50, machine_REGNAMES.data[15], self->regs[15]);
+  printf(__strlit51, machine_REGNAMES.data[16], self->regs[16]);
+  printf(__strlit52, machine_REGNAMES.data[17], self->regs[17]);
+  printf(__strlit53, machine_REGNAMES.data[18], self->regs[18]);
+  printf(__strlit54, machine_REGNAMES.data[19], self->regs[19]);
+  printf(__strlit55, machine_REGNAMES.data[20], self->regs[20]);
+  printf(__strlit56, machine_REGNAMES.data[21], self->regs[21]);
+  printf(__strlit57, machine_REGNAMES.data[22], self->regs[22]);
+  printf(__strlit58, machine_REGNAMES.data[23], self->regs[23]);
+  printf(__strlit59, machine_REGNAMES.data[24], self->regs[24]);
+  printf(__strlit60, machine_REGNAMES.data[25], self->regs[25]);
+  printf(__strlit61, machine_REGNAMES.data[26], self->regs[26]);
+  printf(__strlit62, machine_REGNAMES.data[27], self->regs[27]);
+  printf(__strlit63, machine_REGNAMES.data[28], self->regs[28]);
+  printf(__strlit64, machine_REGNAMES.data[29], self->regs[29]);
+  printf(__strlit65, machine_REGNAMES.data[30], self->regs[30]);
+  printf(__strlit66, machine_REGNAMES.data[31], self->regs[31]);
   printf(__strlit67, self->pc);
 }
 inline void __nelua_print1(char* a1) {
@@ -295,33 +284,33 @@ uint64_t machine_Machine_handle_syscall(machine_Machine_ptr self, uint64_t code)
   switch(code) {
     case 10000: {
       self->running = false;
-      self->exitcode = (int64_t)(*(nluint64_arr32*)self->regs).data[10];
+      self->exitcode = (int64_t)self->regs[10];
       break;
     }
     case 10001: {
-      nelua_panic_stringview(((nlstringview){__strlit68, 8}));
+      nelua_panic_stringview(((nlstringview){(uint8_t*)__strlit68, 8}));
       break;
     }
     case 10007: {
-      void* dest = machine_Machine_getptr(self, (*(nluint64_arr32*)self->regs).data[10]);
-      uint64_t c = (*(nluint64_arr32*)self->regs).data[11];
-      uint64_t len = (*(nluint64_arr32*)self->regs).data[12];
+      void* dest = machine_Machine_getptr(self, self->regs[10]);
+      uint64_t c = self->regs[11];
+      uint64_t len = self->regs[12];
       void* res = memset(dest, (int)c, (size_t)len);
       return (uint64_t)res;
       break;
     }
     case 10101: {
-      char* s = (char*)machine_Machine_getptr(self, (*(nluint64_arr32*)self->regs).data[10]);
+      char* s = (char*)machine_Machine_getptr(self, self->regs[10]);
       __nelua_print1(s);
       break;
     }
     case 10102: {
-      int64_t i = (int64_t)(*(nluint64_arr32*)self->regs).data[10];
+      int64_t i = (int64_t)self->regs[10];
       __nelua_print2(i);
       break;
     }
     default: {
-      nelua_panic_stringview(((nlstringview){__strlit69, 19}));
+      nelua_panic_stringview(((nlstringview){(uint8_t*)__strlit69, 19}));
       break;
     }
   }
@@ -357,7 +346,7 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
     case 0x3: {
       uint32_t funct3 = ((inst >> 12) & 7);
       int64_t imm = (int64_t)(((int32_t)((inst >> 20) & 4095) << 20) >> 20);
-      uint64_t addr = ((*(nluint64_arr32*)self->regs).data[rs1] + (uint64_t)imm);
+      uint64_t addr = (self->regs[rs1] + (uint64_t)imm);
       int64_t val;
       switch(funct3) {
         case 0x0: {
@@ -389,20 +378,20 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
           break;
         }
         default: {
-          nelua_panic_stringview(((nlstringview){__strlit70, 24}));
+          nelua_panic_stringview(((nlstringview){(uint8_t*)__strlit70, 24}));
           break;
         }
       }
       if(nelua_likely((rd != 0U))) {
-        (*(nluint64_arr32*)self->regs).data[rd] = (uint64_t)val;
+        self->regs[rd] = (uint64_t)val;
       }
       break;
     }
     case 0x23: {
       uint32_t funct3 = ((inst >> 12) & 7);
       int64_t imm = (int64_t)(((int32_t)(((inst >> 20) & 4064) | ((inst >> 7) & 31)) << 20) >> 20);
-      uint64_t addr = ((*(nluint64_arr32*)self->regs).data[rs1] + (uint64_t)imm);
-      uint64_t val = (*(nluint64_arr32*)self->regs).data[rs2];
+      uint64_t addr = (self->regs[rs1] + (uint64_t)imm);
+      uint64_t val = self->regs[rs2];
       switch(funct3) {
         case 0x0: {
           machine_Machine_write__1(self, addr, (uint8_t)val);
@@ -421,7 +410,7 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
           break;
         }
         default: {
-          nelua_panic_stringview(((nlstringview){__strlit71, 25}));
+          nelua_panic_stringview(((nlstringview){(uint8_t*)__strlit71, 25}));
           break;
         }
       }
@@ -431,7 +420,7 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
       uint32_t funct3 = ((inst >> 12) & 7);
       int64_t imm = (int64_t)(((int32_t)((inst >> 20) & 4095) << 20) >> 20);
       uint32_t shamt = ((inst >> 20) & 63);
-      int64_t val = (int64_t)(*(nluint64_arr32*)self->regs).data[rs1];
+      int64_t val = (int64_t)self->regs[rs1];
       switch(funct3) {
         case 0x0: {
           val = (val + imm);
@@ -473,7 +462,7 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
               break;
             }
             default: {
-              nelua_panic_stringview(((nlstringview){__strlit72, 32}));
+              nelua_panic_stringview(((nlstringview){(uint8_t*)__strlit72, 32}));
               break;
             }
           }
@@ -488,19 +477,19 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
           break;
         }
         default: {
-          nelua_panic_stringview(((nlstringview){__strlit73, 26}));
+          nelua_panic_stringview(((nlstringview){(uint8_t*)__strlit73, 26}));
           break;
         }
       }
       if(nelua_likely((rd != 0U))) {
-        (*(nluint64_arr32*)self->regs).data[rd] = (uint64_t)val;
+        self->regs[rd] = (uint64_t)val;
       }
       break;
     }
     case 0x1b: {
       uint32_t funct3 = ((inst >> 12) & 7);
       int64_t imm = (int64_t)(((int32_t)((inst >> 20) & 4095) << 20) >> 20);
-      int64_t val = (int64_t)(*(nluint64_arr32*)self->regs).data[rs1];
+      int64_t val = (int64_t)self->regs[rs1];
       switch(funct3) {
         case 0x0: {
           val = (int64_t)(int32_t)(val + imm);
@@ -523,27 +512,27 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
               break;
             }
             default: {
-              nelua_panic_stringview(((nlstringview){__strlit74, 35}));
+              nelua_panic_stringview(((nlstringview){(uint8_t*)__strlit74, 35}));
               break;
             }
           }
           break;
         }
         default: {
-          nelua_panic_stringview(((nlstringview){__strlit75, 29}));
+          nelua_panic_stringview(((nlstringview){(uint8_t*)__strlit75, 29}));
           break;
         }
       }
       if(nelua_likely((rd != 0U))) {
-        (*(nluint64_arr32*)self->regs).data[rd] = (uint64_t)val;
+        self->regs[rd] = (uint64_t)val;
       }
       break;
     }
     case 0x33: {
       uint32_t funct3 = ((inst >> 12) & 7);
       uint32_t funct7 = ((inst >> 25) & 127);
-      int64_t val1 = (int64_t)(*(nluint64_arr32*)self->regs).data[rs1];
-      int64_t val2 = (int64_t)(*(nluint64_arr32*)self->regs).data[rs2];
+      int64_t val1 = (int64_t)self->regs[rs1];
+      int64_t val2 = (int64_t)self->regs[rs2];
       int64_t val;
       switch(((funct7 << 3) | funct3)) {
         case 0x0: {
@@ -655,20 +644,20 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
           break;
         }
         default: {
-          nelua_panic_stringview(((nlstringview){__strlit76, 22}));
+          nelua_panic_stringview(((nlstringview){(uint8_t*)__strlit76, 22}));
           break;
         }
       }
       if(nelua_likely((rd != 0U))) {
-        (*(nluint64_arr32*)self->regs).data[rd] = (uint64_t)val;
+        self->regs[rd] = (uint64_t)val;
       }
       break;
     }
     case 0x3b: {
       uint32_t funct3 = ((inst >> 12) & 7);
       uint32_t funct7 = ((inst >> 25) & 127);
-      int64_t val1 = (int64_t)(*(nluint64_arr32*)self->regs).data[rs1];
-      int64_t val2 = (int64_t)(*(nluint64_arr32*)self->regs).data[rs2];
+      int64_t val1 = (int64_t)self->regs[rs1];
+      int64_t val2 = (int64_t)self->regs[rs2];
       int64_t val;
       switch(((funct7 << 3) | funct3)) {
         case 0x0: {
@@ -740,33 +729,33 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
           break;
         }
         default: {
-          nelua_panic_stringview(((nlstringview){__strlit77, 25}));
+          nelua_panic_stringview(((nlstringview){(uint8_t*)__strlit77, 25}));
           break;
         }
       }
       if(nelua_likely((rd != 0U))) {
-        (*(nluint64_arr32*)self->regs).data[rd] = (uint64_t)val;
+        self->regs[rd] = (uint64_t)val;
       }
       break;
     }
     case 0x37: {
       int64_t imm = (int64_t)(((int32_t)((inst << 0) & 4294963200) << 0) >> 0);
       if(nelua_likely((rd != 0U))) {
-        (*(nluint64_arr32*)self->regs).data[rd] = (uint64_t)imm;
+        self->regs[rd] = (uint64_t)imm;
       }
       break;
     }
     case 0x17: {
       int64_t imm = (int64_t)(((int32_t)((inst << 0) & 4294963200) << 0) >> 0);
       if(nelua_likely((rd != 0U))) {
-        (*(nluint64_arr32*)self->regs).data[rd] = (uint64_t)(self->pc + imm);
+        self->regs[rd] = (uint64_t)(self->pc + imm);
       }
       break;
     }
     case 0x6f: {
       int64_t imm = (int64_t)(((int32_t)(((((inst >> 11) & 1048576) | ((inst >> 20) & 2046)) | ((inst >> 9) & 2048)) | ((inst << 0) & 1044480)) << 11) >> 11);
       if(nelua_likely((rd != 0U))) {
-        (*(nluint64_arr32*)self->regs).data[rd] = (uint64_t)(self->pc + 4);
+        self->regs[rd] = (uint64_t)(self->pc + 4);
       }
       self->pc = (self->pc + imm);
       return;
@@ -775,9 +764,9 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
     case 0x67: {
       int64_t imm = (int64_t)(((int32_t)((inst >> 20) & 4095) << 20) >> 20);
       int64_t pc = (self->pc + 4);
-      self->pc = (((*(nluint64_arr32*)self->regs).data[rs1] + imm) & -2);
+      self->pc = ((self->regs[rs1] + imm) & -2);
       if(nelua_unlikely((rd != 0U))) {
-        (*(nluint64_arr32*)self->regs).data[rd] = (uint64_t)pc;
+        self->regs[rd] = (uint64_t)pc;
       }
       return;
       break;
@@ -785,8 +774,8 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
     case 0x63: {
       uint32_t funct3 = ((inst >> 12) & 7);
       int64_t imm = (int64_t)(((int32_t)(((((inst >> 19) & 4096) | ((inst >> 20) & 2016)) | ((inst >> 7) & 30)) | ((inst << 4) & 2048)) << 19) >> 19);
-      uint64_t val1 = (*(nluint64_arr32*)self->regs).data[rs1];
-      uint64_t val2 = (*(nluint64_arr32*)self->regs).data[rs2];
+      uint64_t val1 = self->regs[rs1];
+      uint64_t val2 = self->regs[rs2];
       bool cond;
       switch(funct3) {
         case 0x0: {
@@ -814,7 +803,7 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
           break;
         }
         default: {
-          nelua_panic_stringview(((nlstringview){__strlit78, 26}));
+          nelua_panic_stringview(((nlstringview){(uint8_t*)__strlit78, 26}));
           break;
         }
       }
@@ -831,8 +820,8 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
       uint32_t funct11 = ((inst >> 20) & 4095);
       switch(funct11) {
         case 0x0: {
-          uint64_t code = (*(nluint64_arr32*)self->regs).data[17];
-          (*(nluint64_arr32*)self->regs).data[10] = machine_Machine_handle_syscall(self, code);
+          uint64_t code = self->regs[17];
+          self->regs[10] = machine_Machine_handle_syscall(self, code);
           break;
         }
         case 0x1: {
@@ -841,14 +830,14 @@ void machine_Machine_execute(machine_Machine_ptr self, uint32_t inst) {
           break;
         }
         default: {
-          nelua_panic_stringview(((nlstringview){__strlit79, 26}));
+          nelua_panic_stringview(((nlstringview){(uint8_t*)__strlit79, 26}));
           break;
         }
       }
       break;
     }
     default: {
-      nelua_panic_stringview(((nlstringview){__strlit80, 19}));
+      nelua_panic_stringview(((nlstringview){(uint8_t*)__strlit80, 19}));
       break;
     }
   }
@@ -874,14 +863,14 @@ inline nlstringview nelua_cstring2stringview(char *s) {
   if(s == NULL) return (nlstringview){0};
   uintptr_t size = strlen(s);
   if(size == 0) return (nlstringview){0};
-  return (nlstringview){s, size};
+  return (nlstringview){(uint8_t*)s, size};
 }
 int nelua_main(int nelua_argc, char** nelua_argv) {
   if(nelua_argc != 2) {
-    __nelua_print3(((nlstringview){__strlit81, 37}));
+    __nelua_print3(((nlstringview){(uint8_t*)__strlit81, 37}));
     exit(1);
   }
-  riscvm_filename = ((char**)nelua_argv)[1];
+  riscvm_filename = (nelua_argv)[1];
   machine_Machine_loadfile(&riscvm_machine, nelua_cstring2stringview(riscvm_filename));
   machine_Machine_run(&riscvm_machine);
   exit((int)riscvm_machine.exitcode);
