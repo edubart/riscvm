@@ -7,7 +7,7 @@ global REGISTERS = @enum {
   ZERO = 0, RA, SP, GP, TP, T0, T1, T2, S0, S1, A0, A1, A2, A3, A4, A5,
   A6, A7, S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, T3, T4, T5, T6
 }
-local REGNAMES: [32]stringview = {
+local REGNAMES: [32]string = {
   "zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2", "s0", "s1", "a0",  "a1",  "a2", "a3", "a4", "a5",
   "a6",   "a7", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
 }
@@ -39,7 +39,7 @@ global Machine = @record{
 }
 
 -- Load instruction and data from a binary file into memory.
-function Machine:loadfile(filename: stringview)
+function Machine:loadfile(filename: string)
   local fp = C.fopen(filename, 'rb')
   if not fp then error('failed to open file') end
   C.fseek(fp, 0, C.SEEK_END)
