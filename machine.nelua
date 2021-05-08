@@ -34,7 +34,7 @@ global Machine = @record{
   running: boolean,
   pc: int64,                    -- program counter
   regs: [32]uint64,             -- program registers
-  memory: [MEMORY_SIZE]uint8,  -- program memory
+  memory: [MEMORY_SIZE]uint8,   -- program memory
   exitcode: int64,
 }
 
@@ -128,7 +128,7 @@ end
 local function orbits(...)
   local expr = select(1, ...)
   for i=2,select('#',...) do
-    expr = aster.BinaryOp{'bor', expr, select(i, ...)}
+    expr = aster.BinaryOp{expr, 'bor', (select(i, ...))}
   end
   return expr
 end
@@ -146,7 +146,7 @@ function Machine:handle_syscall(code: uint64): uint64
     local dest = self:getptr(self.regs[REGISTERS.A0])
     local c = self.regs[REGISTERS.A1]
     local len = self.regs[REGISTERS.A2]
-    local res = C.memset(dest, c, len)
+    local res = C.memset(dest, (@cint)(c), len)
     return (@uint64)(res)
   case SYSCALLS.PRINTS then
     local s = (@cstring)(self:getptr(self.regs[REGISTERS.A0]))
@@ -162,15 +162,15 @@ end
 
 -- Execute an instruction.
 function Machine:execute(inst: uint32) <inline>
-  local opcode: uint32 = #[rbits(inst, 6, 0)]#
-  local rd: uint32 = #[rbits(inst, 11, 7)]#
-  local rs1: uint32 = #[rbits(inst, 19, 15)]#
-  local rs2: uint32 = #[rbits(inst, 24, 20)]#
+  local opcode: uint32 = #[rbits]#(inst, 6, 0)
+  local rd: uint32 = #[rbits]#(inst, 11, 7)
+  local rs1: uint32 = #[rbits]#(inst, 19, 15)
+  local rs2: uint32 = #[rbits]#(inst, 24, 20)
 
   switch opcode do
   case 0b0000011 then -- load
-    local funct3 = #[rbits(inst, 14, 12)]#
-    local imm = #[sext(rimm(inst, 20, 11, 0), 12)]#
+    local funct3 = #[rbits]#(inst, 14, 12)
+    local imm = #[sext]#(#[rimm]#(inst, 20, 11, 0), 12)
     local addr = self.regs[rs1] + (@uint64)(imm)
     local val: int64 <noinit>
     switch funct3 do
@@ -195,8 +195,8 @@ function Machine:execute(inst: uint32) <inline>
       self.regs[rd] = (@uint64)(val)
     end
   case 0b0100011 then -- store
-    local funct3 = #[rbits(inst, 14, 12)]#
-    local imm = #[sext(orbits(rimm(inst, 25, 11, 5),rimm(inst, 7, 4, 0)), 12)]#
+    local funct3 = #[rbits]#(inst, 14, 12)
+    local imm = #[sext]#(#[orbits]#(#[rimm]#(inst, 25, 11, 5),#[rimm]#(inst, 7, 4, 0)), 12)
     local addr = self.regs[rs1] + (@uint64)(imm)
     local val = self.regs[rs2]
     switch funct3 do
@@ -212,9 +212,9 @@ function Machine:execute(inst: uint32) <inline>
       error('illegal store instruction')
     end
   case 0b0010011 then -- op-imm
-    local funct3 = #[rbits(inst, 14, 12)]#
-    local imm = #[sext(rimm(inst, 20, 11, 0), 12)]#
-    local shamt = #[rbits(inst, 25, 20)]#
+    local funct3 = #[rbits]#(inst, 14, 12)
+    local imm = #[sext]#(#[rimm]#(inst, 20, 11, 0), 12)
+    local shamt = #[rbits]#(inst, 25, 20)
     local val: int64 = (@int64)(self.regs[rs1])
     switch funct3 do
     case 0b000 then ## debug_inst('addi', {rd, rs1}, {imm})
@@ -248,8 +248,8 @@ function Machine:execute(inst: uint32) <inline>
       self.regs[rd] = (@uint64)(val)
     end
   case 0b0011011 then -- op-imm-32
-    local funct3 = #[rbits(inst, 14, 12)]#
-    local imm = #[sext(rimm(inst, 20, 11, 0), 12)]#
+    local funct3 = #[rbits]#(inst, 14, 12)
+    local imm = #[sext]#(#[rimm]#(inst, 20, 11, 0), 12)
     local val: int64 = (@int64)(self.regs[rs1])
     switch funct3 do
     case 0b000 then ## debug_inst('addiw', {rd, rs1}, {imm})
@@ -409,19 +409,19 @@ function Machine:execute(inst: uint32) <inline>
     local imm = #[sext(rimm(inst, 12, 31, 12), 32)]#
     ## debug_inst('lui', {rd}, {imm})
     if likely(rd ~= 0) then
-      self.regs[rd] = imm
+      self.regs[rd] = (@uint64)(imm)
     end
   case 0b0010111 then -- auipc
     local imm = #[sext(rimm(inst, 12, 31, 12), 32)]#
     ## debug_inst('auipc', {rd}, {imm})
     if likely(rd ~= 0) then
-      self.regs[rd] = self.pc + imm
+      self.regs[rd] = (@uint64)(self.pc + imm)
     end
   case 0b1101111 then -- jal
     local imm = #[sext(orbits(rimm(inst, 31, 20),rimm(inst, 21, 10, 1),rimm(inst, 20, 11),rimm(inst, 12, 19, 12)), 21)]#
     ## debug_inst('jal', {rd}, {imm})
     if likely(rd ~= 0) then
-      self.regs[rd] = self.pc + 4
+      self.regs[rd] = (@uint64)(self.pc + 4)
     end
     self.pc = self.pc + imm
     return
@@ -431,7 +431,7 @@ function Machine:execute(inst: uint32) <inline>
     local pc = self.pc + 4
     self.pc = ((self.regs[rs1] + imm) & ~1)
     if unlikely(rd ~= 0) then
-      self.regs[rd] = pc
+      self.regs[rd] = (@uint64)(pc)
     end
     return
   case 0b1100011 then -- branches
@@ -485,7 +485,7 @@ end
 
 -- Run until the guest calls exit system call.
 -- Any error terminates the application.
-function Machine:run() <noinline, cattribute'optimize("no-crossjumping,no-gcse")'>
+function Machine:run() <noinline>
   self.running = true
   while likely(self.running) do
     local inst = self:fetch()

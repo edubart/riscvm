@@ -1,7 +1,3 @@
--- Disable Nelua's GC and array bounds checks.
-## pragmas.nogc = true
-## pragmas.nochecks = true
-
 -- Uncomment this to debug instructions being run.
 -- ## DEBUG = true
 
@@ -24,4 +20,4 @@ machine:loadfile(filename)
 machine:run()
 
 -- Exit returning the program exit code.
-C.exit(machine.exitcode)
+C.exit((@cint)(machine.exitcode))

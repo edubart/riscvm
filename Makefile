@@ -18,7 +18,7 @@ example:
 	$(NELUA) -qr riscvm.nelua $(FILE).bin
 
 csrc:
-	$(NELUA) --print-code riscvm.nelua > riscvm.c
+	$(NELUA) -Pnochecks --print-code riscvm.nelua > riscvm.c
 
 clean:
 	rm -f tests/*.out tests/*.bin
