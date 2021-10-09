@@ -10,6 +10,12 @@ CFLAGS=-march=rv64im -mabi=lp64 \
 	-Wl,-T,lib/link.ld \
 	-I lib \
 	-O2
+CGENPRAGMAS=\
+	-Pnogc \
+	-Pnochecks \
+	-Pnocwarnpragmas \
+	-Pnocstaticassert \
+	-Pnocfeaturessetup
 
 example:
 	$(CC) $(CFLAGS) -o $(FILE).out $(FILE).c lib/tinyc.c lib/start.s
@@ -18,7 +24,7 @@ example:
 	$(NELUA) -qr riscvm.nelua $(FILE).bin
 
 csrc:
-	$(NELUA) -Pnochecks --print-code riscvm.nelua > riscvm.c
+	$(NELUA) $(CGENPRAGMAS) -o riscvm.c riscvm.nelua
 
 clean:
 	rm -f tests/*.out tests/*.bin
