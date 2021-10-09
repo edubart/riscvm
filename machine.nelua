@@ -102,26 +102,26 @@ end
 ## end
 
 -- Read immediate encoding from instructions.
-## local rimm = exprmacro(function(inst, instoff, immend, immbeg)
+## local function rimm(inst, instoff, immend, immbeg)
   ## immbeg = immbeg or immend
   ## local bits = ((1 << (immend + 1)) - 1) & (~((1 << immbeg) - 1))
   ## if instoff > immbeg then
-    return (#[inst]# >> #[instoff - immbeg]#) & #[bits]#
+    in (#[inst]# >> #[instoff - immbeg]#) & #[bits]#
   ## else
-    return (#[inst]# << #[immbeg - instoff]#) & #[bits]#
+    in (#[inst]# << #[immbeg - instoff]#) & #[bits]#
   ## end
-## end)
+## end
 
 -- Read a range of bits from an instruction.
-## local rbits = exprmacro(function(inst, bend, bbeg)
+## local function rbits(inst, bend, bbeg)
   ## local bits = ((1<<(bend - bbeg + 1))-1)
-  return (#[inst]# >> #[bbeg]#) & #[bits]#
-## end)
+  in (#[inst]# >> #[bbeg]#) & #[bits]#
+## end
 
 -- Sign extend an integer with `n` bits to 64 bits.
-## local sext = exprmacro(function(val, n)
-  return (@int64)(((@int32)(#[val]#) << #[32 - n]#) >>> #[32 - n]#)
-## end)
+## local function sext(val, n)
+  in (@int64)(((@int32)(#[val]#) << #[32 - n]#) >>> #[32 - n]#)
+## end
 
 -- Combine bits doing OR operations on many expressions.
 ##[[
@@ -162,15 +162,15 @@ end
 
 -- Execute an instruction.
 function Machine:execute(inst: uint32) <inline>
-  local opcode: uint32 = #[rbits]#(inst, 6, 0)
-  local rd: uint32 = #[rbits]#(inst, 11, 7)
-  local rs1: uint32 = #[rbits]#(inst, 19, 15)
-  local rs2: uint32 = #[rbits]#(inst, 24, 20)
+  local opcode: uint32 = rbits!(inst, 6, 0)
+  local rd: uint32 = rbits!(inst, 11, 7)
+  local rs1: uint32 = rbits!(inst, 19, 15)
+  local rs2: uint32 = rbits!(inst, 24, 20)
 
   switch opcode do
   case 0b0000011 then -- load
-    local funct3 = #[rbits]#(inst, 14, 12)
-    local imm = #[sext]#(#[rimm]#(inst, 20, 11, 0), 12)
+    local funct3 = rbits!(inst, 14, 12)
+    local imm = sext!(rimm!(inst, 20, 11, 0), 12)
     local addr = self.regs[rs1] + (@uint64)(imm)
     local val: int64 <noinit>
     switch funct3 do
@@ -195,8 +195,8 @@ function Machine:execute(inst: uint32) <inline>
       self.regs[rd] = (@uint64)(val)
     end
   case 0b0100011 then -- store
-    local funct3 = #[rbits]#(inst, 14, 12)
-    local imm = #[sext]#(#[orbits]#(#[rimm]#(inst, 25, 11, 5),#[rimm]#(inst, 7, 4, 0)), 12)
+    local funct3 = rbits!(inst, 14, 12)
+    local imm = sext!(orbits!(rimm!(inst, 25, 11, 5),rimm!(inst, 7, 4, 0)), 12)
     local addr = self.regs[rs1] + (@uint64)(imm)
     local val = self.regs[rs2]
     switch funct3 do
@@ -212,9 +212,9 @@ function Machine:execute(inst: uint32) <inline>
       error('illegal store instruction')
     end
   case 0b0010011 then -- op-imm
-    local funct3 = #[rbits]#(inst, 14, 12)
-    local imm = #[sext]#(#[rimm]#(inst, 20, 11, 0), 12)
-    local shamt = #[rbits]#(inst, 25, 20)
+    local funct3 = rbits!(inst, 14, 12)
+    local imm = sext!(rimm!(inst, 20, 11, 0), 12)
+    local shamt = rbits!(inst, 25, 20)
     local val: int64 = (@int64)(self.regs[rs1])
     switch funct3 do
     case 0b000 then ## debug_inst('addi', {rd, rs1}, {imm})
@@ -228,7 +228,7 @@ function Machine:execute(inst: uint32) <inline>
     case 0b100 then ## debug_inst('xori', {rd, rs1}, {imm})
       val = val ~ imm
     case 0b101 then
-      local funct6 = #[rbits(inst, 31, 26)]#
+      local funct6 = rbits!(inst, 31, 26)
       switch funct6 >> 4 do
       case 0b00 then ## debug_inst('srli', {rd, rs1}, {shamt})
         val = val >> shamt
@@ -248,8 +248,8 @@ function Machine:execute(inst: uint32) <inline>
       self.regs[rd] = (@uint64)(val)
     end
   case 0b0011011 then -- op-imm-32
-    local funct3 = #[rbits]#(inst, 14, 12)
-    local imm = #[sext]#(#[rimm]#(inst, 20, 11, 0), 12)
+    local funct3 = rbits!(inst, 14, 12)
+    local imm = sext!(rimm!(inst, 20, 11, 0), 12)
     local val: int64 = (@int64)(self.regs[rs1])
     switch funct3 do
     case 0b000 then ## debug_inst('addiw', {rd, rs1}, {imm})
@@ -258,7 +258,7 @@ function Machine:execute(inst: uint32) <inline>
       val = (@int32)(val << imm)
     case 0b101 then
       local shamt = rs2
-      local funct7 = #[rbits(inst, 31, 25)]#
+      local funct7 = rbits!(inst, 31, 25)
       switch funct7 >> 5 do
       case 0b00 then ## debug_inst('srliw', {rd, rs1}, {shamt})
         val = (@int32)(val >> shamt)
@@ -274,8 +274,8 @@ function Machine:execute(inst: uint32) <inline>
       self.regs[rd] = (@uint64)(val)
     end
   case 0b0110011 then -- op
-    local funct3 = #[rbits(inst, 14, 12)]#
-    local funct7 = #[rbits(inst, 31, 25)]#
+    local funct3 = rbits!(inst, 14, 12)
+    local funct7 = rbits!(inst, 31, 25)
     local val1: int64 = (@int64)(self.regs[rs1])
     local val2: int64 = (@int64)(self.regs[rs2])
     local val: int64 <noinit>
@@ -348,8 +348,8 @@ function Machine:execute(inst: uint32) <inline>
       self.regs[rd] = (@uint64)(val)
     end
   case 0b0111011 then -- op-32
-    local funct3 = #[rbits(inst, 14, 12)]#
-    local funct7 = #[rbits(inst, 31, 25)]#
+    local funct3 = rbits!(inst, 14, 12)
+    local funct7 = rbits!(inst, 31, 25)
     local val1: int64 = (@int64)(self.regs[rs1])
     local val2: int64 = (@int64)(self.regs[rs2])
     local val: int64 <noinit>
@@ -406,19 +406,19 @@ function Machine:execute(inst: uint32) <inline>
       self.regs[rd] = (@uint64)(val)
     end
   case 0b0110111 then -- lui
-    local imm = #[sext(rimm(inst, 12, 31, 12), 32)]#
+    local imm = sext!(rimm!(inst, 12, 31, 12), 32)
     ## debug_inst('lui', {rd}, {imm})
     if likely(rd ~= 0) then
       self.regs[rd] = (@uint64)(imm)
     end
   case 0b0010111 then -- auipc
-    local imm = #[sext(rimm(inst, 12, 31, 12), 32)]#
+    local imm = sext!(rimm!(inst, 12, 31, 12), 32)
     ## debug_inst('auipc', {rd}, {imm})
     if likely(rd ~= 0) then
       self.regs[rd] = (@uint64)(self.pc + imm)
     end
   case 0b1101111 then -- jal
-    local imm = #[sext(orbits(rimm(inst, 31, 20),rimm(inst, 21, 10, 1),rimm(inst, 20, 11),rimm(inst, 12, 19, 12)), 21)]#
+    local imm = sext!(orbits!(rimm!(inst, 31, 20),rimm!(inst, 21, 10, 1),rimm!(inst, 20, 11),rimm!(inst, 12, 19, 12)), 21)
     ## debug_inst('jal', {rd}, {imm})
     if likely(rd ~= 0) then
       self.regs[rd] = (@uint64)(self.pc + 4)
@@ -426,7 +426,7 @@ function Machine:execute(inst: uint32) <inline>
     self.pc = self.pc + imm
     return
   case 0b1100111 then -- jalr
-    local imm = #[sext(rimm(inst, 20, 11, 0),12)]#
+    local imm = sext!(rimm!(inst, 20, 11, 0),12)
     ## debug_inst('jalr', {rd, rs1}, {imm})
     local pc = self.pc + 4
     self.pc = ((self.regs[rs1] + imm) & ~1)
@@ -435,8 +435,8 @@ function Machine:execute(inst: uint32) <inline>
     end
     return
   case 0b1100011 then -- branches
-    local funct3 = #[rbits(inst, 14, 12)]#
-    local imm = #[sext(orbits(rimm(inst, 31, 12),rimm(inst, 25, 10, 5),rimm(inst, 8, 4, 1),rimm(inst, 7, 11)), 13)]#
+    local funct3 = rbits!(inst, 14, 12)
+    local imm = sext!(orbits!(rimm!(inst, 31, 12),rimm!(inst, 25, 10, 5),rimm!(inst, 8, 4, 1),rimm!(inst, 7, 11)), 13)
     local val1, val2 = self.regs[rs1], self.regs[rs2]
     local cond: boolean <noinit>
     switch funct3 do
@@ -464,7 +464,7 @@ function Machine:execute(inst: uint32) <inline>
     -- instruction sequentially on a single thread.
     ## debug_inst('fence')
   case 0b1110011 then -- system call/break
-    local funct11 = #[rbits(inst, 31, 20)]#
+    local funct11 = rbits!(inst, 31, 20)
     switch funct11 do
     case 0b000000000000 then
       local code = self.regs[REGISTERS.A7]
